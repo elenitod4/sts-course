@@ -1,0 +1,1605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- skill:chassis -->
+<style>
+/* =====================================================
+   PRESENTATION CHASSIS — style-invariant base styles
+   Fixed 1920×1080 canvas scaled to fit any viewport.
+   Customize colors, fonts, and chrome via :root tokens.
+   ===================================================== */
+
+/* ---------- Universal reset ---------- */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ---------- Theme tokens (override in your deck's CSS) ---------- */
+:root {
+    color-scheme: light;
+
+    --background:      #ffffff;
+    --foreground:      #111111;
+    --card:            #f5f5f5;
+    --card-foreground: var(--foreground);
+    --accent:          #c94a3d;
+    --accent-foreground: #ffffff;
+
+    --muted-foreground: color-mix(in srgb, var(--foreground) 55%, transparent);
+    --border:           color-mix(in srgb, var(--foreground) 12%, transparent);
+
+    --font-display: Georgia, serif;
+    --font-body: -apple-system, system-ui, sans-serif;
+    --font-mono: ui-monospace, monospace;
+
+    /* Reveal animation */
+    --reveal-duration: 0.8s;
+    --reveal-ease:     cubic-bezier(0.16, 1, 0.3, 1);
+    --reveal-distance: 28px;
+
+    /* Chrome (nav dots, keyboard hint) */
+    --nav-dot-size: 9px;
+    --nav-dot-radius: 50%;
+    --nav-dot-color: var(--foreground);
+    --nav-dot-active-color: var(--accent);
+    --nav-dot-opacity: 0.4;
+}
+
+/* ---------- Viewport lock + scroll snap ---------- */
+html, body { height: 100%; overflow-x: hidden; }
+html {
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+}
+
+html, body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+/* ---------- Type scale ----------
+   Fixed px sizes on a 1920×1080 canvas. The canvas is scaled to fit
+   any viewport via transform, so these sizes are absolute within the
+   design surface — no responsive units needed. */
+body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body);
+    font-size: 36px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1 { font-size: 120px; line-height: 1.05; letter-spacing: -0.02em; }
+h2 { font-size: 64px; line-height: 1.1; letter-spacing: -0.01em; }
+h3 { font-size: 44px; line-height: 1.2; }
+.eyebrow {
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1.3;
+}
+
+ul, ol { padding-left: 48px; display: flex; flex-direction: column; gap: 24px; }
+li::marker { color: var(--accent); }
+
+/* ---------- Slide structure ----------
+   .slide is the authored 1920×1080 artboard.
+   The chassis wraps it in viewport + scale layers at runtime. */
+.slide-viewport {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: block;
+    position: relative;
+    background: var(--background);
+    isolation: isolate;
+    z-index: 1;
+}
+
+.slide-scale {
+    width: 1920px;
+    height: 1080px;
+    transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+    transform-origin: center center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+}
+
+.slide {
+    width: 1920px;
+    height: 1080px;
+    padding: 80px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 60px;
+    position: relative;
+    background: transparent;
+}
+
+
+/* ---------- Image defaults ---------- */
+img, .image-container {
+    max-width: 100%;
+    max-height: 540px;
+    object-fit: contain;
+}
+
+/* ---------- Reveal primitives ----------
+   Driven by chassis.js via the Web Animations API, not CSS transitions.
+   Put .reveal* or .step on ANY element — author CSS on the same element
+   (opacity, transform, transition, filter) never conflicts, because
+   WAAPI animations live in the animation cascade origin and win over
+   normal author declarations. The .dN stagger classes below still apply
+   to theme-authored CSS animations via animation-delay.
+
+   Variants: .reveal (fade + up), .reveal-left, .reveal-right,
+   .reveal-scale, .reveal-blur. .step stays hidden until the user
+   advances forward. Don't combine .step with .reveal* on the same
+   element. */
+
+/* FOUC guard: hide reveals until chassis.js marks the document ready. */
+:root:not(.reveals-ready) .reveal,
+:root:not(.reveals-ready) .reveal-left,
+:root:not(.reveals-ready) .reveal-right,
+:root:not(.reveals-ready) .reveal-scale,
+:root:not(.reveals-ready) .reveal-blur,
+:root:not(.reveals-ready) .step {
+    opacity: 0;
+}
+:root:not(.reveals-ready) .reveal-blur { filter: blur(10px); }
+
+/* ---------- Stagger delays (.d1 … .d8) ---------- */
+.slide.visible .d1 { transition-delay: 0.10s; animation-delay: 0.10s; }
+.slide.visible .d2 { transition-delay: 0.25s; animation-delay: 0.25s; }
+.slide.visible .d3 { transition-delay: 0.40s; animation-delay: 0.40s; }
+.slide.visible .d4 { transition-delay: 0.55s; animation-delay: 0.55s; }
+.slide.visible .d5 { transition-delay: 0.70s; animation-delay: 0.70s; }
+.slide.visible .d6 { transition-delay: 0.85s; animation-delay: 0.85s; }
+.slide.visible .d7 { transition-delay: 1.00s; animation-delay: 1.00s; }
+.slide.visible .d8 { transition-delay: 1.15s; animation-delay: 1.15s; }
+
+/* ---------- Nav dots ----------
+   Default: right-center (vertical stack on right edge).
+   Override with <body data-nav="bottom | top-right | hidden">. */
+.nav-dots {
+    position: fixed;
+    right: clamp(0.6rem, 1.5vw, 1.4rem);
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.5rem, 1vh, 0.8rem);
+    z-index: 50;
+}
+
+body[data-nav="bottom"] .nav-dots {
+    right: auto;
+    top: auto;
+    bottom: clamp(1rem, 2.5vh, 2rem);
+    left: 50%;
+    transform: translateX(-50%);
+    flex-direction: row;
+}
+
+body[data-nav="top-right"] .nav-dots {
+    right: clamp(1rem, 2.5vw, 2rem);
+    top: clamp(1rem, 2.5vh, 2rem);
+    transform: none;
+    flex-direction: row;
+}
+
+body[data-nav="hidden"] .nav-dots { display: none; }
+
+body[data-nav="bottom"] .keyboard-hint {
+    left: clamp(1rem, 2vw, 1.5rem);
+    transform: none;
+}
+
+.nav-dots button {
+    width: var(--nav-dot-size);
+    height: var(--nav-dot-size);
+    border-radius: var(--nav-dot-radius);
+    border: 1.5px solid var(--nav-dot-color);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.3s ease;
+    opacity: var(--nav-dot-opacity);
+}
+.nav-dots button:hover { opacity: 0.85; transform: scale(1.15); }
+.nav-dots button:focus-visible {
+    outline: 2px solid var(--nav-dot-active-color);
+    outline-offset: 3px;
+    opacity: 1;
+}
+.nav-dots button.active {
+    background: var(--nav-dot-active-color);
+    border-color: var(--nav-dot-active-color);
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+/* ---------- Keyboard hint ---------- */
+.keyboard-hint {
+    position: fixed;
+    bottom: clamp(0.6rem, 1.2vh, 1rem);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted-foreground);
+    z-index: 50;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.keyboard-hint kbd {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.9em;
+    padding: 0.05em 0.4em;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--background);
+    margin: 0 0.15em;
+}
+
+/* ---------- Credit line ---------- */
+.chassis-credit {
+    position: fixed;
+    bottom: clamp(0.6rem, 1.2vh, 1rem);
+    left: clamp(1rem, 2vw, 1.5rem);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted-foreground);
+    letter-spacing: 0.02em;
+    z-index: 50;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.chassis-credit .chassis-credit-emoji {
+    font-style: normal;
+    margin: 0 0.15em;
+}
+
+body[data-nav="bottom"] .chassis-credit {
+    left: auto;
+    right: clamp(1rem, 2vw, 1.5rem);
+}
+
+/* ---------- Custom cursor ---------- */
+.chassis-cursor {
+    position: fixed;
+    top: 0; left: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: var(--accent);
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    will-change: transform;
+}
+.chassis-cursor.visible { opacity: 1; }
+body.artifact-editor-editing .chassis-cursor { display: none; }
+
+@media (hover: none) {
+    .chassis-cursor { display: none; }
+}
+
+body.chassis-cursor-active:not(.artifact-editor-editing),
+body.chassis-cursor-active:not(.artifact-editor-editing) * { cursor: none; }
+
+/* ---------- Opt-outs ---------- */
+body[data-no-chrome] .nav-dots,
+body[data-no-chrome] .keyboard-hint,
+body[data-no-chrome] .chassis-credit,
+body[data-no-chrome] .chassis-cursor,
+body[data-no-chrome] .artifact-editor-toggle { display: none; }
+
+:fullscreen .keyboard-hint,
+:fullscreen .chassis-credit,
+:fullscreen .artifact-editor-toggle { display: none; }
+
+@media (hover: none) {
+    .keyboard-hint,
+    .chassis-credit { display: none; }
+}
+
+@media (max-width: 900px), (max-height: 560px) {
+    .nav-dots,
+    .keyboard-hint,
+    .chassis-credit,
+    .chassis-cursor { display: none; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.2s !important;
+    }
+    html { scroll-behavior: auto; }
+}
+
+/* ---------- Print (PDF export) ---------- */
+@media print {
+    .nav-dots, .keyboard-hint, .chassis-credit, .chassis-cursor { display: none !important; }
+    html, body { height: auto; overflow: visible; }
+    html { scroll-snap-type: none; }
+    .slide-viewport {
+        page-break-after: always;
+        break-after: page;
+        height: 100vh;
+    }
+    .slide-scale {
+        position: static !important;
+        transform: none !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+    .slide {
+        width: 100% !important;
+        height: auto !important;
+    }
+}
+
+</style>
+<script>
+/* =====================================================
+   PRESENTATION CHASSIS — slide controller
+   Auto-initializes on DOMContentLoaded.
+   Exposes window.slides for programmatic control.
+   ===================================================== */
+(function () {
+    'use strict';
+
+    const REVEAL_SELECTOR = '.reveal, .reveal-left, .reveal-right, .reveal-scale, .reveal-blur';
+    const STEP_SELECTOR = '.step';
+    const ALL_REVEAL_SELECTOR = REVEAL_SELECTOR + ', ' + STEP_SELECTOR;
+    const VIEWPORT_CLASS = 'slide-viewport';
+    const SCALE_CLASS = 'slide-scale';
+
+    function _detectLang() {
+        const param = new URLSearchParams(location.search).get('lang');
+        return (param || navigator.language || 'en').slice(0, 2).toLowerCase();
+    }
+
+    class SlidePresentation {
+        constructor() {
+            this.slides = Array.from(document.querySelectorAll('.slide'));
+            if (this.slides.length === 0) return;
+
+            // Ensure every slide has an id so hashes + anchor links work.
+            // Author-defined ids are preserved; the rest get slide-N (1-indexed).
+            this.slides.forEach((slide, idx) => {
+                if (!slide.id) slide.id = `slide-${idx + 1}`;
+            });
+            this.viewports = this._setupViewports();
+            this.scales = this.viewports.map((viewport) => viewport.querySelector(`.${SCALE_CLASS}`));
+
+            // Hide every reveal element BEFORE lifting the CSS FOUC guard.
+            // After this, .reveals-ready is on <html>, so CSS no longer hides
+            // reveals — inline styles keep them hidden until JS animates them.
+            this._setupReveals();
+
+            this.navDotsContainer = this._ensureNavDots();
+            this.keyboardHint = this._ensureKeyboardHint();
+            this.credit = this._ensureCredit();
+
+            this._setupCanvasScale();
+            this._setupIntersectionObserver();
+            this._setupKeyboardNav();
+            this._setupWheelNav();
+            this._setupTouchNav();
+            this._setupViewportSync();
+            this._buildNavDots();
+            this._setupHashNav();
+            this._setupCursor();
+            this._setupPrintSettling();
+
+            // If URL has a matching hash, start there; otherwise start at slide 0.
+            const initial = this._slideIndexFromHash(location.hash);
+            this.currentSlide = initial >= 0 ? initial : 0;
+            if (this.currentSlide !== 0) {
+                this._scrollToSlide(this.currentSlide, 'auto');
+            }
+            // Reveal initial slide immediately (observer may miss it on load).
+            const first = this.slides[this.currentSlide];
+            first.classList.add('visible');
+            this._playSlideReveals(first);
+            this._updateNavDots();
+        }
+
+        /* ---------- Viewport scaffolding ----------
+           Authors write .slide as the 1920×1080 artboard. The chassis wraps
+           that authored section in viewport and scale layers. */
+        _setupViewports() {
+            return this.slides.map((slide) => {
+                const existingScale = slide.parentElement?.classList.contains(SCALE_CLASS)
+                    ? slide.parentElement
+                    : null;
+                const existingViewport = existingScale?.parentElement?.classList.contains(VIEWPORT_CLASS)
+                    ? existingScale.parentElement
+                    : null;
+                if (existingViewport) {
+                    this._syncViewportBackground(slide, existingViewport);
+                    return existingViewport;
+                }
+
+                const viewport = document.createElement('div');
+                viewport.className = VIEWPORT_CLASS;
+                const scale = document.createElement('div');
+                scale.className = SCALE_CLASS;
+
+                slide.parentNode.insertBefore(viewport, slide);
+                viewport.appendChild(scale);
+                scale.appendChild(slide);
+                this._syncViewportBackground(slide, viewport);
+
+                return viewport;
+            });
+        }
+
+        _syncViewportBackground(slide, viewport) {
+            const style = getComputedStyle(slide);
+            const hasBackgroundImage = style.backgroundImage && style.backgroundImage !== 'none';
+            const hasBackgroundColor = !['rgba(0, 0, 0, 0)', 'transparent'].includes(style.backgroundColor);
+            if (hasBackgroundImage || hasBackgroundColor) {
+                viewport.style.background = style.background;
+            } else {
+                viewport.style.background = '';
+            }
+            slide.style.background = 'transparent';
+        }
+
+        /* ---------- DOM scaffolding (auto-inserted if missing) ---------- */
+        _ensureNavDots() {
+            let el = document.getElementById('navDots');
+            if (!el) {
+                el = document.createElement('nav');
+                el.id = 'navDots';
+                el.className = 'nav-dots';
+                el.setAttribute('aria-label', 'Slide navigation');
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        _ensureKeyboardHint() {
+            let el = document.querySelector('.keyboard-hint');
+            if (!el) {
+                const i18n = {
+                    en: { navigate: 'navigate', restart: 'restart', fullscreen: 'fullscreen' },
+                    es: { navigate: 'navegar',   restart: 'inicio',   fullscreen: 'fullscreen' },
+                    fr: { navigate: 'naviguer',  restart: 'début',    fullscreen: 'fullscreen' },
+                    de: { navigate: 'blättern',  restart: 'anfang',   fullscreen: 'vollbild' },
+                    pt: { navigate: 'navegar',   restart: 'início',   fullscreen: 'fullscreen' },
+                    ja: { navigate: '移動',      restart: '先頭',      fullscreen: '全画面' },
+                    ko: { navigate: '이동',      restart: '처음',      fullscreen: '전체화면' },
+                    zh: { navigate: '翻页',      restart: '重置',      fullscreen: '全屏' },
+                    it: { navigate: 'navigare',  restart: 'inizio',   fullscreen: 'fullscreen' },
+                    nl: { navigate: 'bladeren',  restart: 'begin',    fullscreen: 'vollscherm' },
+                };
+                const t = i18n[_detectLang()] || i18n.en;
+                el = document.createElement('div');
+                el.className = 'keyboard-hint';
+                el.innerHTML = `<kbd>←</kbd> <kbd>→</kbd> ${t.navigate} &middot; <kbd>R</kbd> ${t.restart} &middot; <kbd>F</kbd> ${t.fullscreen}`;
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        _ensureCredit() {
+            let el = document.querySelector('.chassis-credit');
+            if (!el) {
+                el = document.createElement('div');
+                el.className = 'chassis-credit';
+                el.setAttribute('aria-hidden', 'true');
+                el.innerHTML = '💜 by ClickUp Brain';
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        /* ---------- Reveal engine ----------
+           Reveals are driven by the Web Animations API instead of CSS
+           transitions. This lets authors put .reveal* / .step on any
+           element: animation values live in the animation cascade origin
+           and win over normal author declarations, so no wrapper element
+           is required to isolate the chassis from author CSS.
+
+           State per slide:
+           - "hidden":  inline opacity/transform/filter from the 'from'
+                        keyframe of the variant. Set on init and on
+                        forward re-entry.
+           - "played":  animation is running or has run; the class
+                        `reveals-played` on the slide makes playback
+                        idempotent so observer re-fires (resize,
+                        fullscreen) don't restart the animation.
+           - "settled": animation canceled, inline styles cleared. Used
+                        for backward entries (we skip the animation and
+                        show the final state instantly) and for print. */
+
+        _setupReveals() {
+            // Lift the CSS FOUC guard first so getComputedStyle reads each
+            // element's natural opacity, not the guard's blanket opacity: 0.
+            // No paint occurs mid-task — inline hidden styles are applied
+            // before the browser yields, so there is no visible flash.
+            document.documentElement.classList.add('reveals-ready');
+            this.slides.forEach((slide) => {
+                slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                    el._targetOpacity = parseFloat(getComputedStyle(el).opacity);
+                    this._applyHiddenStyle(el);
+                });
+            });
+        }
+
+        _setupPrintSettling() {
+            // Browsers snapshot the document for print/PDF export. WAAPI
+            // animations don't necessarily complete in that snapshot, so
+            // settle every slide to its final state first. After printing,
+            // reset — but only for slides that haven't already been viewed,
+            // so the audience experience picks up where it left off.
+            window.addEventListener('beforeprint', () => {
+                this.slides.forEach((slide) => this._settleSlide(slide));
+            });
+        }
+
+        _readTokens() {
+            const cs = getComputedStyle(document.documentElement);
+            const rawDuration = parseFloat(cs.getPropertyValue('--reveal-duration'));
+            const duration = Number.isFinite(rawDuration) ? rawDuration * 1000 : 800;
+            const ease = cs.getPropertyValue('--reveal-ease').trim() || 'cubic-bezier(0.16, 1, 0.3, 1)';
+            const distance = cs.getPropertyValue('--reveal-distance').trim() || '28px';
+            const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            return {
+                duration: reducedMotion ? 1 : duration,
+                ease,
+                distance,
+            };
+        }
+
+        _getRevealDelay(el) {
+            // Use getAttribute('class') rather than el.className: on SVG
+            // elements, `.className` is an SVGAnimatedString (not a string)
+            // and calling .match on it throws. getAttribute is uniform
+            // across HTML and SVG.
+            const classes = el.getAttribute('class') || '';
+            const m = classes.match(/\bd([1-8])\b/);
+            if (!m) return 0;
+            // Matches CSS .dN: d1 = 100ms, d2 = 250ms, +150ms per step.
+            return 100 + (parseInt(m[1], 10) - 1) * 150;
+        }
+
+        _getRevealKeyframes(el, distance) {
+            const to = el._targetOpacity ?? 1;
+            if (el.classList.contains('reveal-left')) {
+                return [
+                    { opacity: 0, transform: `translateX(calc(-1 * ${distance}))` },
+                    { opacity: to, transform: 'translateX(0)' },
+                ];
+            }
+            if (el.classList.contains('reveal-right')) {
+                return [
+                    { opacity: 0, transform: `translateX(${distance})` },
+                    { opacity: to, transform: 'translateX(0)' },
+                ];
+            }
+            if (el.classList.contains('reveal-scale')) {
+                return [
+                    { opacity: 0, transform: 'scale(0.88)' },
+                    { opacity: to, transform: 'scale(1)' },
+                ];
+            }
+            if (el.classList.contains('reveal-blur')) {
+                return [
+                    { opacity: 0, filter: 'blur(10px)' },
+                    { opacity: to, filter: 'blur(0)' },
+                ];
+            }
+            // Default: .reveal or .step (slide up + fade)
+            return [
+                { opacity: 0, transform: `translateY(${distance})` },
+                { opacity: to, transform: 'translateY(0)' },
+            ];
+        }
+
+        _applyHiddenStyle(el) {
+            const { distance } = this._readTokens();
+            const from = this._getRevealKeyframes(el, distance)[0];
+            if ('opacity' in from) el.style.opacity = from.opacity;
+            if ('transform' in from) el.style.transform = from.transform;
+            if ('filter' in from) el.style.filter = from.filter;
+        }
+
+        _clearHiddenStyle(el) {
+            el.style.opacity = '';
+            el.style.transform = '';
+            el.style.filter = '';
+        }
+
+        _cancelReveal(el) {
+            if (el._revealAnim) {
+                el._revealAnim.cancel();
+                el._revealAnim = null;
+            }
+        }
+
+        _playReveal(el, delayOverride) {
+            this._cancelReveal(el);
+            const { duration, ease, distance } = this._readTokens();
+            const delay = typeof delayOverride === 'number' ? delayOverride : this._getRevealDelay(el);
+            const keyframes = this._getRevealKeyframes(el, distance);
+            // fill: 'backwards' applies the 'from' keyframe during the
+            // stagger delay so the element stays hidden until its turn,
+            // without pinning the 'to' keyframe after the animation ends.
+            // This lets co-existing author CSS (e.g. a `.pulse` CSS
+            // animation on the same element) take over naturally once the
+            // entrance completes — otherwise our fill would mask anything
+            // the author wanted to happen post-reveal.
+            const anim = el.animate(keyframes, {
+                duration,
+                delay,
+                easing: ease,
+                fill: 'backwards',
+            });
+            el._revealAnim = anim;
+            // Safe to clear inline 'from' styles now — the animation's
+            // backwards-fill holds the element at the 'from' keyframe for
+            // the duration of any stagger delay.
+            this._clearHiddenStyle(el);
+        }
+
+        _playSlideReveals(slide) {
+            if (slide.classList.contains('reveals-played')) return;
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(REVEAL_SELECTOR).forEach((el) => this._playReveal(el));
+            // .step elements stay hidden until the user advances.
+        }
+
+        _resetSlideReveals(slide) {
+            // Forward re-entry: cancel in-flight animations, re-hide
+            // everything, and reset step state so the slide replays cleanly
+            // when the observer next adds .visible.
+            slide.classList.remove('reveals-played');
+            slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._applyHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step.step-shown').forEach((el) => el.classList.remove('step-shown'));
+        }
+
+        _settleSlide(slide) {
+            // Print / PDF export: jump to the final state with everything
+            // shown, so every step appears in the exported document.
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._clearHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step').forEach((el) => el.classList.add('step-shown'));
+        }
+
+        _rewindSlide(slide) {
+            // Backward re-entry: show reveals instantly (no replay — the
+            // viewer already saw the intro) but hide every step, so the
+            // slide is positioned at the start of its stepped content and
+            // can be stepped through again.
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._clearHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step').forEach((el) => {
+                el.classList.remove('step-shown');
+                this._cancelReveal(el);
+                this._applyHiddenStyle(el);
+            });
+        }
+
+        /* ---------- Navigation ----------
+           goTo scrolls to the target. Both forward-replay and backward-
+           rewind need to mutate the target BEFORE scrolling — while it's
+           still offscreen — so the viewer never sees the old state flash
+           into view. Resetting after the slide is in view causes a visible
+           "show then hide" blink; the IntersectionObserver fires too late
+           (80% threshold) to catch it. */
+        goTo(index) {
+            const clamped = Math.max(0, Math.min(this.slides.length - 1, index));
+            if (clamped === this.currentSlide) return;
+
+            const target = this.slides[clamped];
+            const goingForward = clamped > this.currentSlide;
+
+            if (target.classList.contains('visible')) {
+                if (goingForward) {
+                    // Forward replay: full reset so the observer can play reveals fresh.
+                    target.classList.remove('visible');
+                    this._resetSlideReveals(target);
+                } else {
+                    // Backward rewind: hide any shown steps so the slide
+                    // scrolls back in at the start of its stepped content.
+                    this._rewindSlide(target);
+                }
+            }
+
+            this._scrollToSlide(clamped, 'smooth');
+        }
+
+        _scrollToSlide(index, behavior) {
+            this.viewports[index]?.scrollIntoView({ behavior, block: 'start' });
+        }
+
+        _slideIndexFromHash(hash) {
+            if (!hash) return -1;
+            return this.slides.findIndex((s) => '#' + s.id === hash);
+        }
+
+        _syncHash() {
+            const slide = this.slides[this.currentSlide];
+            if (!slide || !slide.id) return;
+            const newHash = '#' + slide.id;
+            if (location.hash !== newHash) {
+                // replaceState — keeps the URL in sync without polluting history,
+                // so the browser back button exits the deck instead of stepping through slides.
+                try {
+                    history.replaceState(null, '', newHash);
+                } catch {
+                    // Sandboxed iframes (opaque origin, about:srcdoc) reject URL
+                    // mutation with a SecurityError. Hash sync is a nicety — an
+                    // unguarded throw here kills the observer callback before it
+                    // marks the slide visible and plays its reveals.
+                }
+            }
+        }
+
+        _setupHashNav() {
+            // React to external hash changes (anchor link clicks, back/forward if user uses pushState manually)
+            window.addEventListener('hashchange', () => {
+                const idx = this._slideIndexFromHash(location.hash);
+                if (idx >= 0 && idx !== this.currentSlide) this.goTo(idx);
+            });
+        }
+
+        /* ---------- Custom cursor ----------
+           Accent disc that follows the pointer, hidden after idle. */
+        _setupCursor() {
+            if (!matchMedia('(hover: hover)').matches) return;
+
+            const cursor = document.createElement('div');
+            cursor.className = 'chassis-cursor';
+            cursor.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(cursor);
+            document.body.classList.add('chassis-cursor-active');
+
+            const half = 16;  // matches width/height / 2 in CSS
+            const IDLE_MS = 2500;
+            let idleTimer = null;
+
+            const show = () => {
+                cursor.classList.add('visible');
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(() => {
+                    cursor.classList.remove('visible');
+                }, IDLE_MS);
+            };
+            const hide = () => {
+                clearTimeout(idleTimer);
+                cursor.classList.remove('visible');
+            };
+
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.transform = `translate3d(${e.clientX - half}px, ${e.clientY - half}px, 0)`;
+                show();
+            });
+            document.addEventListener('mouseleave', hide);
+            document.addEventListener('mouseenter', show);
+        }
+
+        /* ---------- Fullscreen ---------- */
+        toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen?.().catch(() => {});
+            } else {
+                document.exitFullscreen?.();
+            }
+        }
+
+        next() { this.goTo(this.currentSlide + 1); }
+        prev() { this.goTo(this.currentSlide - 1); }
+        first() { this.goTo(0); }
+        last() { this.goTo(this.slides.length - 1); }
+
+        /* ---------- Step-aware advance / retreat ----------
+           advance() reveals the next .step on the current slide (if any),
+           otherwise advances to the next slide. retreat() hides the last
+           revealed step, otherwise goes back to the previous slide. */
+        advance() {
+            const current = this.slides[this.currentSlide];
+            const nextStep = current?.querySelector('.step:not(.step-shown)');
+            if (nextStep) {
+                nextStep.classList.add('step-shown');
+                // No stagger on click-reveal — the user's gesture is the trigger.
+                this._playReveal(nextStep, 0);
+                return;
+            }
+            this.next();
+        }
+        retreat() {
+            const current = this.slides[this.currentSlide];
+            const shown = current?.querySelectorAll('.step.step-shown');
+            if (shown && shown.length > 0) {
+                const last = shown[shown.length - 1];
+                last.classList.remove('step-shown');
+                this._cancelReveal(last);
+                this._applyHiddenStyle(last);
+                return;
+            }
+            this.prev();
+        }
+
+        /* ---------- Intersection observer ----------
+           Fire late (>= 80% in view) so reveals play on a settled slide.
+           This is the single source of truth for active-slide state.
+
+           Forward:  add .visible, play reveals. (goTo() has already reset
+                     the target to pre-reveal state if this is a re-visit,
+                     so the animation is fresh either way.)
+           Backward: add .visible, rewind to the start of the stepped
+                     content — reveals are shown instantly (no replay) and
+                     every step is hidden again so the viewer can step
+                     through it fresh. */
+        _setupIntersectionObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    const idx = this.viewports.indexOf(entry.target);
+                    if (idx < 0) return;
+                    const slide = this.slides[idx];
+
+                    if (idx === this.currentSlide) {
+                        // Same-slide re-fire (initial load, resize, fullscreen).
+                        if (!slide.classList.contains('visible')) {
+                            slide.classList.add('visible');
+                        }
+                        // Idempotent: only plays if not already marked played.
+                        this._playSlideReveals(slide);
+                        return;
+                    }
+
+                    const goingForward = idx > this.currentSlide;
+                    this.currentSlide = idx;
+                    this._updateNavDots();
+                    this._syncHash();
+
+                    slide.classList.add('visible');
+                    if (goingForward) {
+                        this._playSlideReveals(slide);
+                    } else {
+                        this._rewindSlide(slide);
+                    }
+                });
+            }, { threshold: 0.8 });
+
+            this.viewports.forEach((viewport) => observer.observe(viewport));
+        }
+
+        /* ---------- Keyboard ---------- */
+        _setupKeyboardNav() {
+            document.addEventListener('keydown', (e) => {
+                // Skip when user is editing text
+                if (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+
+                switch (e.key) {
+                    // Step-aware: consume steps first, then advance slides
+                    case 'ArrowDown':
+                    case 'ArrowRight':
+                    case ' ':
+                        e.preventDefault(); this.advance(); break;
+                    case 'ArrowUp':
+                    case 'ArrowLeft':
+                        e.preventDefault(); this.retreat(); break;
+                    // Slide-level: always skip past steps
+                    case 'PageDown':
+                        e.preventDefault(); this.next(); break;
+                    case 'PageUp':
+                        e.preventDefault(); this.prev(); break;
+                    case 'Home':
+                        e.preventDefault(); this.first(); break;
+                    case 'End':
+                        e.preventDefault(); this.last(); break;
+                    case 'f':
+                    case 'F':
+                        e.preventDefault(); this.toggleFullscreen(); break;
+                    case 'r':
+                    case 'R':
+                        e.preventDefault(); this.first(); break;
+                }
+            });
+        }
+
+        /* ---------- Wheel / trackpad ----------
+           ALWAYS preventDefault — letting any native wheel scroll through
+           races against scrollIntoView + mandatory snap, and blocks macOS
+           two-finger horizontal swipes from triggering browser back/forward.
+           Whichever axis has the larger magnitude wins, so vertical scroll
+           and horizontal trackpad swipes both drive advance/retreat. Lock
+           briefly after a gesture so trackpad inertia (continuous small
+           deltas) can't spam next(). */
+        _setupWheelNav() {
+            let locked = false;
+            window.addEventListener('wheel', (e) => {
+                if (e.ctrlKey) return;                // preserve browser pinch-zoom (ctrl+wheel)
+                e.preventDefault();                   // block native scroll + horizontal back-swipe
+                if (locked) return;
+                const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+                if (Math.abs(delta) < 20) return;     // ignore tiny flicks
+                locked = true;
+                if (delta > 0) this.advance(); else this.retreat();
+                setTimeout(() => { locked = false; }, 500);
+            }, { passive: false });
+        }
+
+        /* ---------- Touch / swipe ----------
+           Horizontal swipes advance / retreat slides; left = next, right =
+           prev (matches stories / carousel conventions). Dominantly
+           vertical swipes fall through to native scroll-snap so the
+           existing top/bottom behavior keeps working. A time budget
+           rejects slow pans that were really aborted scrolls. */
+        _setupTouchNav() {
+            const MIN_DISTANCE = 50;     // px — below this is a tap or jitter
+            const MAX_TIME = 600;        // ms — slower than this is a pan, not a swipe
+            const DOMINANCE = 1.2;       // horizontal must beat vertical by this factor
+
+            let startX = 0, startY = 0, startTime = 0;
+            let tracking = false;
+
+            window.addEventListener('touchstart', (e) => {
+                if (document.body.classList.contains('artifact-editor-editing')) { tracking = false; return; }
+                if (e.touches.length !== 1) { tracking = false; return; }
+                const t = e.touches[0];
+                startX = t.clientX;
+                startY = t.clientY;
+                startTime = performance.now();
+                tracking = true;
+            }, { passive: true });
+
+            window.addEventListener('touchend', (e) => {
+                if (!tracking) return;
+                tracking = false;
+                const t = e.changedTouches[0];
+                const dx = t.clientX - startX;
+                const dy = t.clientY - startY;
+                const ax = Math.abs(dx), ay = Math.abs(dy);
+                if (ax < MIN_DISTANCE) return;
+                if (ax < ay * DOMINANCE) return;
+                if (performance.now() - startTime > MAX_TIME) return;
+                if (dx < 0) this.advance(); else this.retreat();
+            }, { passive: true });
+
+            window.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+        }
+
+        /* ---------- Canvas scaling ----------
+           Each scaler holds a fixed 1920×1080 slide. Compute the
+           scale factor that fits it inside the viewport and apply via
+           CSS custom property. Runs on init, resize, and fullscreen. */
+        _setupCanvasScale() {
+            const CANVAS_W = 1920;
+            const CANVAS_H = 1080;
+            const scales = this.scales;
+
+            const update = () => {
+                const scale = Math.min(
+                    window.innerWidth / CANVAS_W,
+                    window.innerHeight / CANVAS_H
+                );
+                scales.forEach((el) => {
+                    el?.style.setProperty('--slide-scale', scale);
+                });
+            };
+
+            update();
+            window.addEventListener('resize', update);
+            document.addEventListener('fullscreenchange', () => {
+                requestAnimationFrame(update);
+            });
+        }
+
+        /* ---------- Viewport sync ----------
+           Resize / fullscreenchange → realign current slide. Each slide is
+           100vh, so a viewport height change leaves the existing scroll
+           position out of alignment with the slide top; scroll-snap doesn't
+           re-snap on its own. */
+        _setupViewportSync() {
+            const realign = () => {
+                requestAnimationFrame(() => {
+                    this._scrollToSlide(this.currentSlide, 'auto');
+                });
+            };
+            window.addEventListener('resize', realign);
+            document.addEventListener('fullscreenchange', realign);
+        }
+
+        /* ---------- Nav dots ---------- */
+        _buildNavDots() {
+            // Clear first — prevents duplicates when DOM is re-serialized/re-opened
+            this.navDotsContainer.innerHTML = '';
+            this.slides.forEach((slide, idx) => {
+                const dot = document.createElement('button');
+                dot.setAttribute('aria-label', `Go to slide ${idx + 1}`);
+                if (idx === 0) dot.classList.add('active');
+                dot.addEventListener('click', () => this.goTo(idx));
+                this.navDotsContainer.appendChild(dot);
+            });
+        }
+
+        _updateNavDots() {
+            const dots = this.navDotsContainer.querySelectorAll('button');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === this.currentSlide);
+            });
+        }
+    }
+
+    /* ---------- Auto-init ---------- */
+    function init() {
+        // Each slide canvas is its own editable host for the inline editor.
+        document.querySelectorAll('.slide').forEach(function (el) {
+            el.classList.add('artifact-editable');
+        });
+        window.slides = new SlidePresentation();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+
+</script>
+<!-- /skill:chassis -->
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>STS Week 2 | Sessions 3-4 | Intellectual Revolutions</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&display=swap"/>
+  <style>
+    :root{--bg:#f0f5fa;--fg:#081326;--card:#0a2a66;--cdf:#fff;--ac:#27c2ff;--ac2:#ffb703;--ac3:#8b5cf6;--bd:rgba(10,42,102,.12);--fd:'Archivo Black',sans-serif;--fb:'Space Grotesk',sans-serif}
+    h1,h2,h3{font-family:var(--fd);letter-spacing:-.02em}p,li,span,td,th{font-family:var(--fb)}
+    .slide{padding:80px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden}
+    .slide h1{font-size:120px;line-height:1.03;margin-bottom:18px}.slide h2{font-size:62px;line-height:1.08;margin-bottom:26px}
+    .slide h3{font-size:38px;line-height:1.15;margin-bottom:10px}.slide p{font-size:30px;line-height:1.45;max-width:1240px}
+    .ey{font-size:24px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ac);margin-bottom:16px}
+    .sn{position:absolute;top:30px;right:70px;font-size:200px;line-height:1;opacity:.06;font-family:var(--fd)}
+    .bg1{background:linear-gradient(135deg,#061a40,#0c3d91 50%,#1258b0);color:#fff}
+    .bg2{background:linear-gradient(135deg,#f0f5fa,#dfeefd);color:var(--fg)}
+    .bg3{background:linear-gradient(140deg,#0b2458,#155799 55%,#1f8fff);color:#fff}
+    .bg4{background:linear-gradient(145deg,#f7fbff,#e7f1ff 52%,#d4e6ff);color:var(--fg)}
+    .bg5{background:linear-gradient(135deg,#111c4e,#0d4f88 60%,#05a0d1);color:#fff}
+    .cd{background:var(--card);color:var(--cdf);border-radius:22px;padding:36px 42px}
+    .gl{background:rgba(255,255,255,.1);color:#fff;border-radius:18px;padding:28px 30px}
+    .lc{background:rgba(255,255,255,.92);border:2px solid var(--bd);border-radius:18px;padding:28px 32px}
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:26px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px}
+    .ls{list-style:none;padding:0;margin:0}.ls li{font-size:30px;line-height:1.45;padding:12px 0 12px 38px;position:relative}
+    .ls li::before{content:'▸';position:absolute;left:0;color:var(--ac);font-weight:900}
+    table{width:100%;border-collapse:collapse;margin-top:16px}th{text-align:left;background:var(--card);color:#fff;font-size:24px;padding:16px 20px}
+    td{font-size:24px;padding:16px 20px;border-bottom:1px solid var(--bd)}tr:nth-child(even) td{background:rgba(39,194,255,.04)}
+    .meme{background:#111827;color:#fff;border:3px solid var(--ac);border-radius:22px;padding:52px;text-align:center;max-width:960px;margin:0 auto}
+    .meme .emoji{font-size:80px;margin-bottom:16px}
+    .tl{position:relative;margin-top:20px;padding-left:36px}.tl::before{content:'';position:absolute;left:10px;top:0;bottom:0;width:4px;border-radius:4px;background:linear-gradient(180deg,var(--ac),var(--ac2))}
+    .ti{position:relative;margin-bottom:20px}.ti::before{content:'';position:absolute;left:-32px;top:10px;width:16px;height:16px;border-radius:50%;background:var(--ac2)}
+    .ti h3{font-size:30px;margin-bottom:4px}.ti p{font-size:24px;opacity:.82}
+    .pill{display:inline-block;padding:10px 24px;border-radius:999px;background:rgba(255,255,255,.1);color:#fff;font-size:22px;font-weight:700}
+    .orb::before{content:'';position:absolute;width:860px;height:860px;border-radius:50%;left:58%;top:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(39,194,255,.14),transparent 68%);animation:pulse 6s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:.35;transform:translate(-50%,-50%) scale(.95)}50%{opacity:.7;transform:translate(-50%,-50%) scale(1.05)}}
+    .vb{min-height:220px;border-radius:20px;background:linear-gradient(135deg,#0a2a66,#1b69b6);display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;color:#fff;font-size:26px}
+    .tiny{font-size:22px;opacity:.72}.ctr{text-align:center}
+    .cmp{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:20px}
+  </style>
+</head>
+<body>
+
+<!-- SESSION 3: COPERNICAN, DARWINIAN, FREUDIAN -->
+
+<section class="slide bg1 orb" data-script="Good day class! Last week nag-discuss tayo ng historical antecedents, from ancient civilizations to the scientific revolution. This week, we shift from inventions to IDEAS. Specifically, intellectual revolutions: the moments in history when a single idea changed how all of humanity understood reality. Hindi lang ito about facts. It is about worldview shifts. When a big idea lands, it doesn't just update textbooks. It transforms politics, religion, education, identity, and power. That's what we're tackling today.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">03</span>
+  <span class="ey reveal d1">week 2 | session 3</span>
+  <h1 class="reveal d2" style="font-size:96px;color:#fff">Intellectual<br>Revolutions</h1>
+  <p class="reveal d3" style="color:rgba(255,255,255,.82);font-size:34px">The ideas that flipped the world upside down, then rebuilt it smarter.</p>
+  <p class="reveal d4 tiny" style="color:rgba(255,255,255,.6);margin-top:26px">Science, Technology and Society | Elenito G. David</p>
+</section>
+
+<section class="slide bg4" data-script="Before we define intellectual revolution, let me ask you: can an idea be dangerous? Think about it. Not a weapon, not a disease, just an idea. The answer is yes. Ideas have toppled empires, started wars, freed populations, and redefined what it means to be human. An intellectual revolution happens when a new idea completely replaces how people understand reality, knowledge, nature, or themselves. Not a small update. A complete framework replacement.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">warm up</span>
+  <h2 class="reveal d2">What is an intellectual revolution?</h2>
+  <div class="cd reveal d3" style="max-width:1180px">
+    <p style="font-size:34px;color:#fff">An <strong style="color:var(--ac)">intellectual revolution</strong> happens when a new idea completely changes how people understand reality, knowledge, power, nature, or themselves.</p>
+  </div>
+  <p class="reveal d4" style="margin-top:26px;opacity:.76">Not just a new fact. A whole new way of thinking.</p>
+</section>
+
+<section class="slide bg2" data-script="Here's the chain reaction. Ideas change beliefs. Beliefs change systems. Systems change societies. Societies change how technology is used. Kaya important ang intellectual revolutions sa STS: because the way people THINK determines how they build, use, regulate, and distribute technology. If your worldview says certain people are inferior, technology gets used to reinforce that. If your worldview says evidence matters, technology gets tested and improved.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">why this matters</span>
+  <h2 class="reveal d2">Revolutions don't start with weapons. They start with ideas.</h2>
+  <ul class="ls"><li class="step">Ideas change beliefs</li><li class="step">Beliefs change systems</li><li class="step">Systems change societies</li><li class="step">Societies change how technology is used</li></ul>
+</section>
+
+<section class="slide bg3" data-script="Let me put this simply: change the idea, change the world. If people believe the Earth is the center of everything, institutions are built around that. If people believe humans evolved, ethics and education shift. If people believe AI can think, economies reorganize. STS is basically watching that chain reaction happen in real time.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">03</span>
+  <h1 class="reveal d2" style="font-size:90px;color:#fff">Change the idea,<br>change the world.</h1>
+  <p class="reveal d3" style="color:rgba(255,255,255,.82);max-width:1000px">That's the whole game. STS is basically watching that chain reaction in real time.</p>
+</section>
+
+<section class="slide bg4" data-script="Here's our roadmap for Sessions 3 and 4. Today we cover the first three classical intellectual revolutions: Copernican (astronomy), Darwinian (biology), and Freudian (psychology). Next session we add the Information Revolution and the AI Revolution. Each one represents a blow to human ego. Watch for the pattern: each revolution tells humans they are less special than they thought.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">today's map</span>
+  <h2 class="reveal d2">The 5 intellectual revolutions</h2>
+  <div class="g3 reveal d3">
+    <div class="lc"><h3>🌞 Copernican</h3><p>Earth is not the center.</p></div>
+    <div class="lc"><h3>🧬 Darwinian</h3><p>Humans evolved, not created separately.</p></div>
+    <div class="lc"><h3>⚛️ Freudian</h3><p>We are not fully rational.</p></div>
+    <div class="lc"><h3>🌐 Information</h3><p>Knowledge became instant.</p></div>
+    <div class="lc"><h3>🤖 AI</h3><p>Thinking tasks are now shared with machines.</p></div>
+    <div class="lc"><h3>+ STS angle</h3><p>Every revolution shifts power and ethics.</p></div>
+  </div>
+</section>
+
+<section class="slide bg2" data-script="Quick activity. I want you to think of one idea, app, or realization that completely changed how you see the world. Not necessarily from class. It could be something personal. Maybe it was learning how algorithms control your feed. Maybe it was realizing how much data your phone collects. Maybe it was a conversation that flipped your perspective. 3 minutes: think alone, pair up, share. Then we compare.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">mini-activity</span>
+  <h2 class="reveal d2">Think-pair-share</h2>
+  <div class="cd reveal d3" style="max-width:1100px">
+    <p style="color:#fff;font-size:34px">What's one idea or app that completely changed how you see the world?</p>
+    <p style="color:rgba(255,255,255,.7);font-size:28px;margin-top:14px">3 minutes: think alone, pair up, then report back.</p>
+  </div>
+</section>
+
+<section class="slide bg1" data-script="Alright, let's start with the big one. The Copernican Revolution. This is the moment humanity found out it wasn't the main character. Before Copernicus, everyone believed Earth was at the center of the universe. Everything revolved around us. Then one guy said: actually, no. We revolve around the sun. And that changed EVERYTHING.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">03</span>
+  <span class="ey reveal d1">first revolution</span>
+  <h1 class="reveal d2" style="font-size:92px;color:#fff">The Copernican<br>Revolution</h1>
+  <p class="reveal d3" style="color:rgba(255,255,255,.82)">The moment humanity found out it wasn't the main character.</p>
+</section>
+
+<section class="slide bg4" data-script="Context first. Before Copernicus, the geocentric model was dominant. Earth at the center. Sun, moon, planets, stars all revolving around us. This wasn't just some random idea. It was backed by Aristotle, by Ptolemy's mathematics, and by the Catholic Church. So challenging it wasn't just intellectually risky. It was politically and personally dangerous. People who challenged it could face punishment or even death.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">context</span>
+  <h2 class="reveal d2">The old model: geocentrism</h2>
+  <div class="g2 reveal d3">
+    <div class="lc"><h3>🌍 Earth-centered universe</h3><p>Earth sat motionless at the center. Sun, moon, stars revolved around it.</p></div>
+    <div class="lc"><h3>⛪ Backed by authority</h3><p>Supported by Aristotle, Ptolemy, and Church teaching. Challenging it was dangerous.</p></div>
+  </div>
+</section>
+
+<section class="slide bg2" data-script="Nicolaus Copernicus, Polish astronomer, 1473 to 1543. He proposed that the sun, not the Earth, is at the center. His book De Revolutionibus was published in 1543, the year he died. Some say he delayed publication because he feared the backlash. The model was not perfect (he still assumed circular orbits), but the core insight was revolutionary: we are not at the center.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">the man</span>
+  <h2 class="reveal d2">Nicolaus Copernicus (1473-1543)</h2>
+  <div class="cd reveal d3" style="max-width:1100px">
+    <p style="color:rgba(255,255,255,.86);font-size:32px">Polish astronomer who argued that the <strong style="color:var(--ac2)">sun</strong>, not Earth, is at the center of the planetary system. Published <em>De Revolutionibus</em> in 1543.</p>
+  </div>
+</section>
+
+<section class="slide bg3" data-script="The new claim was simple but devastating: the Earth MOVES. It rotates on its axis and revolves around the sun. That sounds basic now. But back then, this was a mind grenade. It contradicted sensory experience (you don't feel the Earth moving), religious teaching (Earth was supposed to be special), and established science (Ptolemy's model worked reasonably well for predictions). Yet Copernicus was right.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">03</span>
+  <span class="ey reveal d1">the claim</span>
+  <h2 class="reveal d2" style="color:#fff">Heliocentrism</h2>
+  <div class="cd reveal d3" style="background:rgba(255,255,255,.12);max-width:1100px">
+    <p style="color:#fff;font-size:38px">The Earth <strong style="color:var(--ac)">moves</strong>. It rotates on its axis and revolves around the sun.</p>
+  </div>
+  <p class="reveal d4" style="color:rgba(255,255,255,.72);margin-top:22px">Sounds basic now. Back then, it was a mind grenade.</p>
+</section>
+
+<section class="slide bg4" data-script="Visual comparison. Geocentric: Earth at center, explains reality through authority and appearance. Heliocentric: Sun at center, explains reality through better observation and mathematics. The shift is not just about planets. It is about how we justify knowledge. Authority vs. evidence. That's the deeper lesson.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">visualization</span>
+  <h2 class="reveal d2">Geocentric vs Heliocentric</h2>
+  <div class="g2 reveal d3">
+    <div class="lc ctr"><p style="font-size:80px">🌍</p><h3>Geocentric</h3><p>Earth at center. Knowledge from authority.</p></div>
+    <div class="lc ctr"><p style="font-size:80px;color:var(--ac2)">☀️</p><h3>Heliocentric</h3><p>Sun at center. Knowledge from observation.</p></div>
+  </div>
+</section>
+
+<section class="slide bg2" data-script="Copernicus wasn't alone. Kepler showed that planetary motion is elliptical, making the math work better. Galileo used the telescope to provide direct observational evidence. Newton explained WHY planets move that way with gravity. So the revolution was not one man. It was a chain of thinkers, each adding evidence and explanation. That's how intellectual revolutions usually work: one spark, then a wave.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">supporting figures</span>
+  <h2 class="reveal d2">Copernicus wasn't alone</h2>
+  <table class="reveal d3"><tr><th>Figure</th><th>Contribution</th><th>Why it mattered</th></tr><tr><td><strong>Kepler</strong></td><td>Elliptical orbits</td><td>Better math</td></tr><tr><td><strong>Galileo</strong></td><td>Telescope evidence</td><td>Provided proof</td></tr><tr><td><strong>Newton</strong></td><td>Law of gravity</td><td>Explained the mechanism</td></tr></table>
+</section>
+
+<section class="slide bg4" data-script="What did this revolution actually DO to society? Three brutal things. One: it removed Earth from the center, meaning humans are not as cosmically special as they thought. Two: it weakened blind trust in authority because the experts and the church were demonstrably wrong. Three: it boosted the value of observation, math, and evidence over tradition. This is the beginning of what we now call the scientific worldview.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">impact</span>
+  <h2 class="reveal d2">This revolution did 3 brutal things</h2>
+  <ul class="ls"><li class="step">Removed Earth from the center (we're not special)</li><li class="step">Weakened blind trust in authority</li><li class="step">Boosted observation, math, and evidence</li></ul>
+</section>
+
+<section class="slide bg1" data-script="STS connection: the Copernican Revolution is not just about astronomy. It changed religion (authority got challenged), education (evidence-based inquiry became stronger), and technology (better instruments became more valuable because observation mattered more). So science, technology, and society all shifted together. That's the STS lens.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">03</span>
+  <span class="ey reveal d1">sts angle</span>
+  <h2 class="reveal d2" style="color:#fff">It changed society, not just astronomy</h2>
+  <div class="g3 reveal d3">
+    <div class="gl"><h3>Religion</h3><p>Authority challenged.</p></div>
+    <div class="gl"><h3>Education</h3><p>Evidence-based inquiry grew.</p></div>
+    <div class="gl"><h3>Technology</h3><p>Better instruments became valuable.</p></div>
+  </div>
+</section>
+
+<section class="slide bg4" data-script="Meme slide. Lighten the mood. You can say: basically, before Copernicus humanity had main character syndrome. Copernicus said: guys, we're extras. The Earth isn't even at the center. That's humbling. And yet, that humility is what opened the door to real scientific progress.">
+  <div class="meme reveal-scale d1"><div class="emoji">🌍😬☀️</div><p style="font-size:38px;margin-bottom:12px">Humanity before Copernicus: "We're the center of everything."</p><p style="font-size:40px;color:var(--ac)">Copernicus: "lol no"</p></div>
+</section>
+
+<section class="slide bg3" data-script="Okay, second revolution. The Darwinian Revolution. If Copernicus said we're not at the center of the cosmos, Darwin said we're not biologically separate from the rest of life. Before Darwin, most people believed species were created individually and fixed. Humans were entirely distinct from animals. Then Darwin proposed evolution by natural selection, and that changed everything in biology, philosophy, and society.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">03</span>
+  <span class="ey reveal d1">second revolution</span>
+  <h1 class="reveal d2" style="font-size:92px;color:#fff">The Darwinian<br>Revolution</h1>
+  <p class="reveal d3" style="color:rgba(255,255,255,.82)">Humans stopped seeing themselves as separate from nature.</p>
+</section>
+
+<section class="slide bg4" data-script="Before Darwin: species were believed to be individually created, fixed, unchanging. Humans were seen as wholly separate from animals in origin. This was supported by religion and philosophy. It felt natural and obvious. Then Darwin came along and said: actually, all living things are connected through ancestry, and change happens through natural selection over long periods of time.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">old belief</span>
+  <h2 class="reveal d2">Before Darwin</h2>
+  <div class="g2 reveal d3">
+    <div class="lc"><h3>Creationist fixity</h3><p>Species individually created, fixed, unchanging.</p></div>
+    <div class="lc"><h3>Human exceptionalism</h3><p>Humans wholly separate from animals in origin.</p></div>
+  </div>
+</section>
+
+<section class="slide bg2" data-script="Darwin's key idea: evolution by natural selection. Species change over time. Traits that help organisms survive and reproduce become more common in the population. No magic shortcut. Just deep time plus selection pressure. It is elegant, simple in concept, but powerful in explaining the diversity of life on Earth.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">the idea</span>
+  <h2 class="reveal d2">Evolution by natural selection</h2>
+  <div class="cd reveal d3" style="max-width:1180px">
+    <p style="font-size:34px;color:#fff">Species change over time. Traits that help organisms survive and reproduce become more common. No magic shortcut, just deep time plus selection.</p>
+  </div>
+</section>
+
+<section class="slide bg4" data-script="Let me simplify natural selection into four steps. One: variation, individuals differ. Two: struggle, resources are limited. Three: selection, useful traits increase survival. Four: change, populations gradually evolve. That's it. That's the engine that produced everything from bacteria to blue whales to us.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">4 steps</span>
+  <h2 class="reveal d2">Natural selection, simplified</h2>
+  <div class="g2 reveal d3">
+    <div class="lc"><h3>1. Variation</h3><p>Individuals differ from one another.</p></div>
+    <div class="lc"><h3>2. Struggle</h3><p>Resources are limited.</p></div>
+    <div class="lc"><h3>3. Selection</h3><p>Useful traits increase survival.</p></div>
+    <div class="lc"><h3>4. Change</h3><p>Populations evolve over generations.</p></div>
+  </div>
+</section>
+
+<section class="slide bg1" data-script="Why was this shocking? Because it linked humans to other animals. It challenged literal religious interpretations. It reframed life as dynamic, not fixed. And importantly, it wasn't just a scientific claim. It affected how people think about identity, morality, and human value. If humans are just another branch on the tree of life, what makes us special? That's a philosophical bomb.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">03</span>
+  <span class="ey reveal d1">the shock</span>
+  <h2 class="reveal d2" style="color:#fff">Darwin's idea hit hard because...</h2>
+  <ul class="ls reveal d3"><li style="color:rgba(255,255,255,.9)">It linked humans to other animals</li><li style="color:rgba(255,255,255,.9)">It challenged literal religious interpretations</li><li style="color:rgba(255,255,255,.9)">It reframed life as dynamic, not fixed</li></ul>
+</section>
+
+<section class="slide bg4" data-script="Important nuance. Some people twisted Darwin's biology into bad politics. Social Darwinism used survival of the fittest to justify racism, colonialism, and inequality. That's not science. That's ideology wearing a lab coat. Darwin described how nature works. He did NOT say it should be a model for human society. This distinction matters in STS because it shows how scientific ideas can be weaponized.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">warning</span>
+  <h2 class="reveal d2">Misuse: Social Darwinism</h2>
+  <div class="cd reveal d3" style="max-width:1180px">
+    <p style="color:#fff;font-size:34px">Some twisted Darwin's biology into bad politics, using "survival of the fittest" to justify racism and inequality. That's not science. That's ideology wearing a lab coat.</p>
+  </div>
+</section>
+
+<section class="slide bg3" data-script="Meme time. Classic misconception. Clarify: Darwin never said we came from monkeys. He said humans and modern apes share common ancestors. Big difference. It's like saying you and your cousin have the same grandparents. You didn't come from your cousin.">
+  <div class="meme reveal-scale d1"><div class="emoji">🧬🐒😑</div><p style="font-size:38px;margin-bottom:12px">Student: "So Darwin said I came from a monkey?"</p><p style="font-size:38px;color:var(--ac)">Teacher: "No. Please respect both science and monkeys."</p></div>
+</section>
+
+<section class="slide bg5" data-script="Third revolution. Sigmund Freud. If Copernicus said we're not at the center of the cosmos, and Darwin said we're not separate from nature, Freud said we're not even in control of our own minds. Before Freud, people assumed humans are rational, self-aware, fully conscious agents. Freud said: most of what drives your behavior is hidden from your awareness. That's the unconscious.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">03</span>
+  <span class="ey reveal d1">third revolution</span>
+  <h1 class="reveal d2" style="font-size:92px;color:#fff">The Freudian<br>Revolution</h1>
+  <p class="reveal d3" style="color:rgba(255,255,255,.8)">Humans realized their minds are not as transparent as they thought.</p>
+</section>
+
+<section class="slide bg4" data-script="Freud's key idea: the unconscious mind. You know the iceberg image? Only about 10 percent of the iceberg is visible above water. Freud said the mind is like that. The conscious part, what you're aware of, is the small tip. Below the surface are hidden drives, fears, memories, and desires that influence your behavior without you knowing. This idea revolutionized psychology, literature, art, and even marketing.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">key idea</span>
+  <h2 class="reveal d2">The unconscious mind</h2>
+  <div class="g2 reveal d3">
+    <div class="lc ctr"><p style="font-size:72px;font-family:var(--fd);color:var(--ac2)">10%</p><h3>Conscious</h3><p>Thoughts you are aware of.</p></div>
+    <div class="lc ctr"><p style="font-size:72px;font-family:var(--fd);color:var(--ac3)">90%</p><h3>Unconscious</h3><p>Hidden drives, fears, memories, motives.</p></div>
+  </div>
+</section>
+
+<section class="slide bg2" data-script="Freud's structural model: Id, Ego, Superego. The Id is your primitive drives, it wants pleasure now. The Ego is the reality manager, tries to balance. The Superego is the moral voice, internalized rules. These three are constantly in tension. That's why people behave inconsistently, feel guilty, or do things they regret. Freud tried to explain that tension systematically.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">model</span>
+  <h2 class="reveal d2">Id, Ego, Superego</h2>
+  <div class="g3 reveal d3">
+    <div class="lc"><h3>🔥 Id</h3><p>Primitive drives. Wants pleasure now.</p></div>
+    <div class="lc"><h3>🧠 Ego</h3><p>Reality manager. Balances demands.</p></div>
+    <div class="lc"><h3>⚖️ Superego</h3><p>Moral voice. Internalized rules.</p></div>
+  </div>
+</section>
+
+<section class="slide bg4" data-script="Is Freud still fully accepted? Honestly, parts yes, parts no. His influence on therapy, literature, film, and popular culture is massive. But many specific claims are hard to test scientifically, and some ideas are outdated or culturally biased. So Freud matters. But don't worship him. That's lazy thinking. The intellectual revolution he caused, the idea that we're not fully transparent to ourselves, that part holds up.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">nuance</span>
+  <h2 class="reveal d2">Is Freud still accepted?</h2>
+  <div class="cmp reveal d3">
+    <div class="lc"><h3>Still influential</h3><p>Therapy, literature, film, pop psychology, behavior studies.</p></div>
+    <div class="lc"><h3>Also criticized</h3><p>Hard to test, some ideas outdated, cultural bias.</p></div>
+  </div>
+</section>
+
+<section class="slide bg2" data-script="Let's put all three together. See the pattern? Copernicus: we are not the center of the cosmos. Darwin: we are not separate from nature. Freud: we are not in control of our own minds. Each one is a blow to human ego. Each one forced humanity to be more humble about its place in reality. And each one opened new possibilities for science, ethics, and self-understanding.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">checkpoint</span>
+  <h2 class="reveal d2">Three revolutions, three ego slaps</h2>
+  <table class="reveal d3"><tr><th>Revolution</th><th>What humans learned</th></tr><tr><td>Copernican</td><td>We are not the center of the cosmos</td></tr><tr><td>Darwinian</td><td>We are not biologically separate from nature</td></tr><tr><td>Freudian</td><td>We are not fully in control of our minds</td></tr></table>
+</section>
+
+<section class="slide bg4" data-script="Let me ask you: which revolution do you think offended humanity the most? Was it losing cosmic centrality, losing biological uniqueness, or losing the illusion of rational control? There's no right answer. But think about which one would be hardest for YOU to accept. That tells you something about your own assumptions.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">discussion</span>
+  <h2 class="reveal d2">Which one offended humanity the most?</h2>
+  <div class="g3 reveal d3">
+    <div class="lc ctr"><p style="font-size:60px">☀️</p><p style="font-weight:700">Copernicus</p></div>
+    <div class="lc ctr"><p style="font-size:60px">🧬</p><p style="font-weight:700">Darwin</p></div>
+    <div class="lc ctr"><p style="font-size:60px">🧠</p><p style="font-weight:700">Freud</p></div>
+  </div>
+</section>
+
+<section class="slide bg1 orb" data-script="Session 3 takeaway: intellectual revolutions don't just add new facts. They force humans to rethink who they are, how they know, and what kind of world they live in. That's what makes them revolutions and not just updates. Next session, we add two more: the Information Revolution and the AI Revolution. Rest up.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">03</span>
+  <span class="ey reveal d1">session recap</span>
+  <h2 class="reveal d2" style="color:#fff">Session 3 takeaway</h2>
+  <p class="reveal d3" style="color:#fff;font-size:42px;max-width:1200px;line-height:1.2">Intellectual revolutions don't just add new facts. They force humans to rethink who they are, how they know, and what kind of world they live in.</p>
+  <p class="reveal d4 tiny" style="color:rgba(255,255,255,.68);margin-top:26px">Next: Information Revolution and AI Revolution</p>
+</section>
+
+<section class="slide bg4" data-script="1-minute exit ticket. Write one sentence: which idea from today changed how you see humans or the universe? This is not graded. It's just a reflection habit. Collect or not, up to you, but it trains students to process ideas actively.">
+  <span class="sn">03</span>
+  <span class="ey reveal d1">exit ticket</span>
+  <h2 class="reveal d2">1-minute paper</h2>
+  <div class="cd reveal d3" style="max-width:1100px">
+    <p style="color:#fff;font-size:34px">Write one sentence: Which idea from today changed how you see humans or the universe?</p>
+  </div>
+</section>
+
+<!-- SESSION 4: INFORMATION & AI REVOLUTIONS -->
+
+<section class="slide bg5" data-script="Welcome back! Session 4. Last time we covered three classical intellectual revolutions: Copernican, Darwinian, Freudian. Today we add two modern ones that are arguably even more disruptive because they are still happening: the Information Revolution and the AI Revolution. These are not historical. These are live.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">04</span>
+  <div class="reveal d1"><span class="pill">session 4</span></div>
+  <h1 class="reveal d2" style="font-size:96px;color:#fff">Information & AI<br>Revolutions</h1>
+  <p class="reveal d3" style="color:rgba(255,255,255,.82)">From printed pages to machine-generated answers. Things escalated fast.</p>
+</section>
+
+<section class="slide bg4" data-script="Why do these count as intellectual revolutions? Because they changed how humans create, store, share, trust, and use knowledge. That's not a tech update. That's a civilization update. When the medium of knowledge changes, everything downstream changes too: education, politics, commerce, identity, relationships.">
+  <span class="sn">04</span>
+  <span class="ey reveal d1">bridge</span>
+  <h2 class="reveal d2">Why these count as intellectual revolutions</h2>
+  <p class="reveal d3">Because they changed how humans create, store, share, trust, and use knowledge. That's not a tech update. That's a civilization update.</p>
+</section>
+
+<section class="slide bg2" data-script="The Information Revolution: a period where the production, processing, and distribution of information became radically faster, cheaper, and more powerful through computers, networks, and digital systems. It's basically the shift from information scarcity to information overload. Before, the problem was getting access to information. Now, the problem is filtering, verifying, and making sense of too much information.">
+  <span class="sn">04</span>
+  <span class="ey reveal d1">definition</span>
+  <h2 class="reveal d2">What is the Information Revolution?</h2>
+  <div class="cd reveal d3" style="max-width:1180px">
+    <p style="color:#fff;font-size:34px">A period where the production, processing, and distribution of information became radically faster, cheaper, and more powerful through computers, networks, and digital systems.</p>
+  </div>
+</section>
+
+<section class="slide bg1" data-script="Quick timeline. 1440: printing press. 1830s: telegraph. 1876: telephone. 1940s: computers. 1990s: internet. 2000s plus: smartphones. Each step made information faster, cheaper, and more accessible. But each step also created new problems: propaganda, surveillance, misinformation, addiction. The pattern never changes.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">04</span>
+  <span class="ey reveal d1">timeline</span>
+  <h2 class="reveal d2" style="color:#fff">A fast history of information tech</h2>
+  <div class="tl reveal d3" style="max-width:1100px;color:#fff">
+    <div class="ti"><h3>1440: Printing press</h3><p>Mass copying of ideas begins.</p></div>
+    <div class="ti"><h3>1830s: Telegraph</h3><p>Messages travel faster than people.</p></div>
+    <div class="ti"><h3>1876: Telephone</h3><p>Voice becomes instant over distance.</p></div>
+    <div class="ti"><h3>1940s: Computers</h3><p>Machines process data at scale.</p></div>
+    <div class="ti"><h3>1990s: Internet</h3><p>Global information network explodes.</p></div>
+    <div class="ti"><h3>2000s+: Smartphones</h3><p>The network goes inside your pocket.</p></div>
+  </div>
+</section>
+
+<section class="slide bg4" data-script="From scarcity to overload. Before: information was scarce, slow, expensive, controlled by gatekeepers. Now: information is abundant, instant, cheap, and sometimes wildly unreliable. The shift seems like pure progress, but it created new challenges: fake news, algorithm manipulation, data privacy violations, attention fragmentation. STS asks: who benefits from this change and who gets harmed?">
+  <span class="sn">04</span>
+  <span class="ey reveal d1">big shift</span>
+  <h2 class="reveal d2">From scarcity to overload</h2>
+  <div class="cmp reveal d3">
+    <div class="lc ctr"><p style="font-size:64px;font-family:var(--fd);color:var(--ac2)">then</p><p>Scarce, slow, expensive, gatekept.</p></div>
+    <div class="lc ctr"><p style="font-size:64px;font-family:var(--fd);color:var(--ac)">now</p><p>Abundant, instant, cheap, often unreliable.</p></div>
+  </div>
+</section>
+
+<section class="slide bg2" data-script="The Information Revolution changed education (learning moved beyond classrooms), business (data became the new fuel), politics (public opinion shaped at algorithm speed), crime (cybercrime as a whole new battlefield), social life (identity and relationships moved online), and work (remote, hybrid, gig economy). Basically, no aspect of modern life was untouched.">
+  <span class="sn">04</span>
+  <span class="ey reveal d1">impact</span>
+  <h2 class="reveal d2">What it changed</h2>
+  <div class="g3 reveal d3">
+    <div class="lc"><h3>Education</h3><p>Learning beyond classrooms.</p></div>
+    <div class="lc"><h3>Business</h3><p>Data became the new fuel.</p></div>
+    <div class="lc"><h3>Politics</h3><p>Opinion shaped at algorithm speed.</p></div>
+    <div class="lc"><h3>Crime</h3><p>Cybercrime is a whole new field.</p></div>
+    <div class="lc"><h3>Social life</h3><p>Identity moved online.</p></div>
+    <div class="lc"><h3>Work</h3><p>Remote, hybrid, gig all normal.</p></div>
+  </div>
+</section>
+
+<section class="slide bg4" data-script="STS issue: information doesn't just empower. It also manipulates. Misinformation spreads faster than correction. Algorithms amplify outrage because outrage performs. Data collection turns users into products. Attention becomes a battleground. This is not conspiracy. This is well-documented business models. Students should understand this.">
+  <span class="sn">04</span>
+  <span class="ey reveal d1">dark side</span>
+  <h2 class="reveal d2">Information also manipulates</h2>
+  <ul class="ls"><li class="step">Misinformation spreads faster than correction</li><li class="step">Algorithms amplify outrage (it performs better)</li><li class="step">Data collection turns users into products</li><li class="step">Attention becomes a battleground</li></ul>
+</section>
+
+<section class="slide bg3" data-script="Meme break. Before: I need to go to the library. Now: I have 500 tabs open and know less. The irony of information abundance is that it can actually reduce clarity if you don't have frameworks for filtering and evaluating. That's what STS and critical thinking provide.">
+  <div class="meme reveal-scale d1"><div class="emoji">📚➡️📱😵</div><p style="font-size:36px;margin-bottom:12px">Before: "I need the library for information."</p><p style="font-size:38px;color:var(--ac)">Now: "500 tabs open. Know less."</p></div>
+</section>
+
+<section class="slide bg1" data-script="Now the AI Revolution. This is the newest and arguably most disruptive of all five. AI refers to computer systems that perform tasks typically associated with human intelligence: learning, pattern recognition, language use, decision-making, problem solving. The key difference from previous computing: AI doesn't just follow instructions. It learns from data and generates outputs that weren't explicitly programmed.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">04</span>
+  <span class="ey reveal d1">next shift</span>
+  <h1 class="reveal d2" style="font-size:96px;color:#fff">The AI Revolution</h1>
+  <p class="reveal d3" style="color:rgba(255,255,255,.82)">Machines that classify, predict, generate, recommend, and decide.</p>
+</section>
+
+<section class="slide bg4" data-script="AI is already all over your life. Social media recommendations, maps navigation, shopping suggestions, medical image analysis, educational tools, face recognition. You interact with AI dozens of times per day without thinking about it. That's what makes it revolutionary: it's already embedded, not just theoretical.">
+  <span class="sn">04</span>
+  <span class="ey reveal d1">daily life</span>
+  <h2 class="reveal d2">AI is already everywhere</h2>
+  <div class="g3 reveal d3">
+    <div class="lc"><h3>📲 Recommenders</h3><p>TikTok, YouTube, Netflix</p></div>
+    <div class="lc"><h3>🗺️ Navigation</h3><p>Maps, traffic prediction</p></div>
+    <div class="lc"><h3>🛒 Commerce</h3><p>Targeting, pricing, fraud detection</p></div>
+    <div class="lc"><h3>🏥 Health</h3><p>Image analysis, diagnostics</p></div>
+    <div class="lc"><h3>🏫 Education</h3><p>Tutors, grading tools</p></div>
+    <div class="lc"><h3>🔐 Security</h3><p>Face recognition, anomaly detection</p></div>
+  </div>
+</section>
+
+<section class="slide bg2" data-script="Why is AI a revolution? Because it changes what counts as human work. Before: machines replaced muscle. Now: machines assist or replace cognitive tasks too. Writing, analysis, customer service, design, coding, legal research. If thinking tasks can be automated, what is left that's uniquely human? That is the question this revolution forces us to ask.">
+  <span class="sn">04</span>
+  <span class="ey reveal d1">why revolutionary</span>
+  <h2 class="reveal d2">AI changes what counts as "human work"</h2>
+  <div class="cmp reveal d3">
+    <div class="lc"><h3>Before</h3><p>Machines replaced muscle (Industrial Rev).</p></div>
+    <div class="lc"><h3>Now</h3><p>Machines assist or replace cognitive tasks too.</p></div>
+  </div>
+</section>
+
+<section class="slide bg4" data-script="Benefits: faster decision support, better pattern detection in huge datasets, personalized services and learning, automation of repetitive tasks, new creative and research tools. These are real gains. People are excited because productivity can increase and new things become possible that weren't before.">
+  <span class="sn">04</span>
+  <span class="ey reveal d1">benefits</span>
+  <h2 class="reveal d2">Why people are excited</h2>
+  <ul class="ls"><li class="step">Faster decision support</li><li class="step">Pattern detection in huge datasets</li><li class="step">Personalized services and learning</li><li class="step">Automation of repetitive tasks</li><li class="step">New creative and research tools</li></ul>
+</section>
+
+<section class="slide bg2" data-script="Risks: bias in training data means biased outputs. Job displacement is real. Deepfakes enable synthetic misinformation. Surveillance expands. People become dependent on systems they don't understand. The key STS question is not can we, but should we, where, for whom, and under what rules. Capability without ethics is dangerous.">
+  <span class="sn">04</span>
+  <span class="ey reveal d1">risks</span>
+  <h2 class="reveal d2">Why people are worried</h2>
+  <ul class="ls"><li class="step">Bias in data = biased outputs</li><li class="step">Job displacement and labor disruption</li><li class="step">Deepfakes and synthetic misinformation</li><li class="step">Surveillance and privacy erosion</li><li class="step">Overreliance on systems we don't understand</li></ul>
+</section>
+
+<section class="slide bg3" data-script="Meme. Student says AI wrote this. Teacher says: cool, did AI also understand it for you? The point: AI tools can produce output, but understanding, judgment, and responsibility still require human engagement. Using AI without comprehension is not learning. It is outsourcing your thinking. And that has consequences.">
+  <div class="meme reveal-scale d1"><div class="emoji">🤖📚😅</div><p style="font-size:36px;margin-bottom:12px">Student: "AI wrote this, sir."</p><p style="font-size:40px;color:var(--ac)">Teacher: "Cool. Did AI also understand it for you?"</p></div>
+</section>
+
+<section class="slide bg4" data-script="Field relevance. BSIS: automation, analytics, data ethics. Social Work: case prioritization, digital vulnerability, access equity. Education: AI tutors, cheating concerns, personalization. Criminology: predictive policing, forensic analytics, ethics. Business: operations, forecasting, customer intelligence. Everyone: critical thinking, verification, responsible use.">
+  <span class="sn">04</span>
+  <span class="ey reveal d1">your programs</span>
+  <h2 class="reveal d2">AI across your fields</h2>
+  <div class="g2 reveal d3">
+    <div class="lc"><h3>BSIS</h3><p>Automation, analytics, data ethics.</p></div>
+    <div class="lc"><h3>Social Work</h3><p>Digital vulnerability, access equity.</p></div>
+    <div class="lc"><h3>Education</h3><p>AI tutors, cheating, personalization.</p></div>
+    <div class="lc"><h3>Criminology</h3><p>Predictive policing, forensic analytics.</p></div>
+    <div class="lc"><h3>Business</h3><p>Forecasting, customer intelligence.</p></div>
+    <div class="lc"><h3>Everyone</h3><p>Critical thinking, verification, responsible use.</p></div>
+  </div>
+</section>
+
+<section class="slide bg1" data-script="All five revolutions in one slide. Copernican: we are not the center. Darwinian: we are not separate from nature. Freudian: we are not in control of ourselves. Information: knowledge moves at network speed. AI: thinking tasks are now shared with machines. See the pattern? Each revolution humbles humanity further and forces new ethical, social, and institutional responses.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">04</span>
+  <span class="ey reveal d1">all 5 together</span>
+  <h2 class="reveal d2" style="color:#fff">Five revolutions in one slide</h2>
+  <div class="tl reveal d3" style="color:#fff;max-width:1200px">
+    <div class="ti"><h3>Copernican</h3><p>We are not the center of the universe.</p></div>
+    <div class="ti"><h3>Darwinian</h3><p>We are not separate from nature.</p></div>
+    <div class="ti"><h3>Freudian</h3><p>We are not in control of ourselves.</p></div>
+    <div class="ti"><h3>Information</h3><p>Knowledge moves at network speed.</p></div>
+    <div class="ti"><h3>AI</h3><p>Thinking tasks are shared with machines.</p></div>
+  </div>
+</section>
+
+<section class="slide bg4" data-script="What do all intellectual revolutions have in common? They challenge what people thought was obvious. They face resistance from power structures. They spread through education, media, and institutions. They reshape technology and social life together. Understanding this pattern helps you recognize when you're living through one.">
+  <span class="sn">04</span>
+  <span class="ey reveal d1">pattern</span>
+  <h2 class="reveal d2">What do they all share?</h2>
+  <ul class="ls"><li class="step">Challenge what people thought was obvious</li><li class="step">Face resistance from power structures</li><li class="step">Spread through education, media, institutions</li><li class="step">Reshape technology and social life together</li></ul>
+</section>
+
+<section class="slide bg2" data-script="Group activity. In groups, choose the revolution you think had the biggest impact on human life. Defend your answer using one scientific effect, one social effect, and one ethical issue. Give them about 10 minutes. Each group presents in 2 minutes. No fence-sitting allowed. Commit to a position.">
+  <span class="sn">04</span>
+  <span class="ey reveal d1">group activity</span>
+  <h2 class="reveal d2">Pick one revolution and defend it</h2>
+  <div class="cd reveal d3" style="max-width:1120px">
+    <p style="color:#fff;font-size:32px">In groups, choose the revolution with the biggest impact. Defend using one scientific effect, one social effect, and one ethical issue. No fence-sitting.</p>
+  </div>
+</section>
+
+<section class="slide bg4" data-script="Hot take for debate: the AI Revolution may become more disruptive than all previous intellectual revolutions combined. Agree or disagree? Let students fight it out for a few minutes. The best answers will acknowledge both sides but commit to a position with reasoning.">
+  <span class="sn">04</span>
+  <span class="ey reveal d1">debate</span>
+  <h2 class="reveal d2">Hot take</h2>
+  <div class="cd reveal d3" style="max-width:1100px">
+    <p style="color:#fff;font-size:36px">The AI Revolution may become more disruptive than all previous intellectual revolutions combined.</p>
+    <p style="color:rgba(255,255,255,.7);font-size:28px;margin-top:12px">Agree or disagree. No fence-sitting.</p>
+  </div>
+</section>
+
+<section class="slide bg2" data-script="Terms to remember. Heliocentrism, natural selection, unconscious, information revolution, artificial intelligence. Make sure students can define each in their own words. Quiz-ready terms.">
+  <span class="sn">04</span>
+  <span class="ey reveal d1">terms</span>
+  <h2 class="reveal d2">Vocabulary check</h2>
+  <table class="reveal d3"><tr><th>Term</th><th>Meaning</th></tr><tr><td>Heliocentrism</td><td>Sun-centered model</td></tr><tr><td>Natural selection</td><td>Traits spread through survival advantage</td></tr><tr><td>Unconscious</td><td>Part of mind outside awareness</td></tr><tr><td>Information Revolution</td><td>Rapid expansion of digital info processing</td></tr><tr><td>Artificial Intelligence</td><td>Systems performing human-like cognitive tasks</td></tr></table>
+</section>
+
+<section class="slide bg1" data-script="Homework. Write a 1-2 page reflection: which intellectual revolution affects your field the most today, and why? Identify your course, explain the revolution in plain language, connect it to one real problem or opportunity today, end with your personal position. Due next session.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">04</span>
+  <span class="ey reveal d1">assignment</span>
+  <h2 class="reveal d2" style="color:#fff">Homework</h2>
+  <div class="cd reveal d3" style="background:rgba(255,255,255,.12);max-width:1160px">
+    <p style="color:#fff;font-size:32px">Write 1-2 pages: <strong style="color:var(--ac)">Which intellectual revolution affects your field the most today, and why?</strong></p>
+    <ul style="color:rgba(255,255,255,.84);font-size:26px;line-height:1.8;margin-top:16px;padding-left:24px"><li>Identify your course/discipline</li><li>Explain the revolution in plain language</li><li>Connect to one real problem or opportunity today</li><li>End with your personal position</li></ul>
+  </div>
+</section>
+
+<section class="slide bg3" data-script="Week 2 summary. Session 3: Copernican, Darwinian, Freudian. Session 4: Information and AI Revolutions. Five revolutions, one pattern: new knowledge changes power. Next week we tackle paradigm shifts and Philippine science history. Great work today, see you next session.">
+  <span class="sn" style="color:rgba(255,255,255,.08)">04</span>
+  <span class="ey reveal d1">recap</span>
+  <h2 class="reveal d2" style="color:#fff">Week 2 summary</h2>
+  <div class="g2 reveal d3">
+    <div class="gl"><h3>Session 3</h3><p>Copernican, Darwinian, Freudian Revolutions</p></div>
+    <div class="gl"><h3>Session 4</h3><p>Information and AI Revolutions</p></div>
+  </div>
+  <p class="reveal d4" style="color:rgba(255,255,255,.76);margin-top:24px">Five revolutions, one pattern: new knowledge changes power.</p>
+</section>
+
+<section class="slide bg1 orb" data-script="End of Week 2. Tell them: great work wrestling with these big ideas. Next week we go deeper into how science actually changes (Thomas Kuhn and paradigm shifts) and then look at Philippine science history. See you next session, and don't forget the reflection paper.">
+  <h1 class="reveal-scale d1" style="font-size:78px;color:#fff;text-align:center">End of Week 2 🧠</h1>
+  <p class="reveal d2" style="color:rgba(255,255,255,.8);text-align:center;font-size:32px;margin-top:18px">Next: Paradigm shifts + Philippine science history</p>
+  <p class="reveal d3 tiny" style="color:rgba(255,255,255,.58);text-align:center;margin-top:30px">STS | Elenito G. David | Cronasia Foundation College, Inc.</p>
+</section>
+
+<script>
+(function(){
+  var slides=document.querySelectorAll('.slide'),sw=null,cur=0;
+  function idx(){var h=location.hash,m=h.match(/slide-(\d+)/);if(m)return Math.max(0,Math.min(slides.length-1,parseInt(m[1],10)-1));var b=0,bt=1e9;slides.forEach(function(s,i){var d=Math.abs(s.getBoundingClientRect().top);if(d<bt){bt=d;b=i}});return b}
+  function html(i){var s=slides[i],sc=s?s.dataset.script:'No script for this slide.',n=i+1,t=slides.length;return'<!DOCTYPE html><html><head><meta charset=UTF-8><title>Teacher Script</title><style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#0b1020;color:#eaf2ff}.w{padding:28px 32px;max-width:1000px;margin:0 auto}.nav{position:sticky;top:0;background:rgba(11,16,32,.95);padding:16px 0 20px;border-bottom:1px solid rgba(125,211,252,.12);z-index:10}.badge{display:inline-block;padding:6px 14px;border-radius:999px;background:#16325f;color:#7dd3fc;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}h2{font-size:22px;margin:12px 0 4px;color:#e2e8f0}.meta{color:#94a3b8;font-size:13px}.card{background:#121a30;border:1px solid rgba(125,211,252,.15);border-radius:16px;padding:28px;margin-top:20px}.script{font-size:21px;line-height:1.7;white-space:pre-wrap;color:#e2e8f0}.tip{margin-top:20px;font-size:13px;color:#64748b;border-top:1px solid rgba(125,211,252,.08);padding-top:14px}</style></head><body><div class=w><div class=nav><span class=badge>teacher script</span><h2>Slide '+n+' / '+t+'</h2><p class=meta>Script syncs with main deck automatically.</p></div><div class=card><div class=script>'+sc.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div></div><div class=tip>Keep on laptop. Press T in main deck to reopen.</div></div></body></html>'}
+  function sync(){if(!sw||sw.closed)return;var i=idx();if(i!==cur){cur=i;sw.document.open();sw.document.write(html(i));sw.document.close()}}
+  function open(){cur=idx();sw=window.open('','_teacherScript','width=900,height=800,resizable=yes,scrollbars=yes');if(!sw)return;sw.document.open();sw.document.write(html(cur));sw.document.close();sw.focus()}
+  document.addEventListener('keydown',function(e){if((e.key==='t'||e.key==='T')&&!e.metaKey&&!e.ctrlKey&&!e.altKey){e.preventDefault();if(!sw||sw.closed)open();else{sw.focus();sync()}}});
+  window.addEventListener('hashchange',function(){setTimeout(sync,80)});setInterval(sync,400);
+})();
+</script>
+</body>
+</html>

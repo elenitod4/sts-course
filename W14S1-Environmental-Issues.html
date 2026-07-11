@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- skill:chassis -->
+<style>
+/* =====================================================
+   PRESENTATION CHASSIS — style-invariant base styles
+   Fixed 1920×1080 canvas scaled to fit any viewport.
+   Customize colors, fonts, and chrome via :root tokens.
+   ===================================================== */
+
+/* ---------- Universal reset ---------- */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ---------- Theme tokens (override in your deck's CSS) ---------- */
+:root {
+    color-scheme: light;
+
+    --background:      #ffffff;
+    --foreground:      #111111;
+    --card:            #f5f5f5;
+    --card-foreground: var(--foreground);
+    --accent:          #c94a3d;
+    --accent-foreground: #ffffff;
+
+    --muted-foreground: color-mix(in srgb, var(--foreground) 55%, transparent);
+    --border:           color-mix(in srgb, var(--foreground) 12%, transparent);
+
+    --font-display: Georgia, serif;
+    --font-body: -apple-system, system-ui, sans-serif;
+    --font-mono: ui-monospace, monospace;
+
+    /* Reveal animation */
+    --reveal-duration: 0.8s;
+    --reveal-ease:     cubic-bezier(0.16, 1, 0.3, 1);
+    --reveal-distance: 28px;
+
+    /* Chrome (nav dots, keyboard hint) */
+    --nav-dot-size: 9px;
+    --nav-dot-radius: 50%;
+    --nav-dot-color: var(--foreground);
+    --nav-dot-active-color: var(--accent);
+    --nav-dot-opacity: 0.4;
+}
+
+/* ---------- Viewport lock + scroll snap ---------- */
+html, body { height: 100%; overflow-x: hidden; }
+html {
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+}
+
+html, body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+/* ---------- Type scale ----------
+   Fixed px sizes on a 1920×1080 canvas. The canvas is scaled to fit
+   any viewport via transform, so these sizes are absolute within the
+   design surface — no responsive units needed. */
+body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body);
+    font-size: 36px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1 { font-size: 120px; line-height: 1.05; letter-spacing: -0.02em; }
+h2 { font-size: 64px; line-height: 1.1; letter-spacing: -0.01em; }
+h3 { font-size: 44px; line-height: 1.2; }
+.eyebrow {
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1.3;
+}
+
+ul, ol { padding-left: 48px; display: flex; flex-direction: column; gap: 24px; }
+li::marker { color: var(--accent); }
+
+/* ---------- Slide structure ----------
+   .slide is the authored 1920×1080 artboard.
+   The chassis wraps it in viewport + scale layers at runtime. */
+.slide-viewport {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: block;
+    position: relative;
+    background: var(--background);
+    isolation: isolate;
+    z-index: 1;
+}
+
+.slide-scale {
+    width: 1920px;
+    height: 1080px;
+    transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+    transform-origin: center center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+}
+
+.slide {
+    width: 1920px;
+    height: 1080px;
+    padding: 80px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 60px;
+    position: relative;
+    background: transparent;
+}
+
+
+/* ---------- Image defaults ---------- */
+img, .image-container {
+    max-width: 100%;
+    max-height: 540px;
+    object-fit: contain;
+}
+
+/* ---------- Reveal primitives ----------
+   Driven by chassis.js via the Web Animations API, not CSS transitions.
+   Put .reveal* or .step on ANY element — author CSS on the same element
+   (opacity, transform, transition, filter) never conflicts, because
+   WAAPI animations live in the animation cascade origin and win over
+   normal author declarations. The .dN stagger classes below still apply
+   to theme-authored CSS animations via animation-delay.
+
+   Variants: .reveal (fade + up), .reveal-left, .reveal-right,
+   .reveal-scale, .reveal-blur. .step stays hidden until the user
+   advances forward. Don't combine .step with .reveal* on the same
+   element. */
+
+/* FOUC guard: hide reveals until chassis.js marks the document ready. */
+:root:not(.reveals-ready) .reveal,
+:root:not(.reveals-ready) .reveal-left,
+:root:not(.reveals-ready) .reveal-right,
+:root:not(.reveals-ready) .reveal-scale,
+:root:not(.reveals-ready) .reveal-blur,
+:root:not(.reveals-ready) .step {
+    opacity: 0;
+}
+:root:not(.reveals-ready) .reveal-blur { filter: blur(10px); }
+
+/* ---------- Stagger delays (.d1 … .d8) ---------- */
+.slide.visible .d1 { transition-delay: 0.10s; animation-delay: 0.10s; }
+.slide.visible .d2 { transition-delay: 0.25s; animation-delay: 0.25s; }
+.slide.visible .d3 { transition-delay: 0.40s; animation-delay: 0.40s; }
+.slide.visible .d4 { transition-delay: 0.55s; animation-delay: 0.55s; }
+.slide.visible .d5 { transition-delay: 0.70s; animation-delay: 0.70s; }
+.slide.visible .d6 { transition-delay: 0.85s; animation-delay: 0.85s; }
+.slide.visible .d7 { transition-delay: 1.00s; animation-delay: 1.00s; }
+.slide.visible .d8 { transition-delay: 1.15s; animation-delay: 1.15s; }
+
+/* ---------- Nav dots ----------
+   Default: right-center (vertical stack on right edge).
+   Override with <body data-nav="bottom | top-right | hidden">. */
+.nav-dots {
+    position: fixed;
+    right: clamp(0.6rem, 1.5vw, 1.4rem);
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.5rem, 1vh, 0.8rem);
+    z-index: 50;
+}
+
+body[data-nav="bottom"] .nav-dots {
+    right: auto;
+    top: auto;
+    bottom: clamp(1rem, 2.5vh, 2rem);
+    left: 50%;
+    transform: translateX(-50%);
+    flex-direction: row;
+}
+
+body[data-nav="top-right"] .nav-dots {
+    right: clamp(1rem, 2.5vw, 2rem);
+    top: clamp(1rem, 2.5vh, 2rem);
+    transform: none;
+    flex-direction: row;
+}
+
+body[data-nav="hidden"] .nav-dots { display: none; }
+
+body[data-nav="bottom"] .keyboard-hint {
+    left: clamp(1rem, 2vw, 1.5rem);
+    transform: none;
+}
+
+.nav-dots button {
+    width: var(--nav-dot-size);
+    height: var(--nav-dot-size);
+    border-radius: var(--nav-dot-radius);
+    border: 1.5px solid var(--nav-dot-color);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.3s ease;
+    opacity: var(--nav-dot-opacity);
+}
+.nav-dots button:hover { opacity: 0.85; transform: scale(1.15); }
+.nav-dots button:focus-visible {
+    outline: 2px solid var(--nav-dot-active-color);
+    outline-offset: 3px;
+    opacity: 1;
+}
+.nav-dots button.active {
+    background: var(--nav-dot-active-color);
+    border-color: var(--nav-dot-active-color);
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+/* ---------- Keyboard hint ---------- */
+.keyboard-hint {
+    position: fixed;
+    bottom: clamp(0.6rem, 1.2vh, 1rem);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted-foreground);
+    z-index: 50;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.keyboard-hint kbd {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.9em;
+    padding: 0.05em 0.4em;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--background);
+    margin: 0 0.15em;
+}
+
+/* ---------- Credit line ---------- */
+.chassis-credit {
+    position: fixed;
+    bottom: clamp(0.6rem, 1.2vh, 1rem);
+    left: clamp(1rem, 2vw, 1.5rem);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted-foreground);
+    letter-spacing: 0.02em;
+    z-index: 50;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.chassis-credit .chassis-credit-emoji {
+    font-style: normal;
+    margin: 0 0.15em;
+}
+
+body[data-nav="bottom"] .chassis-credit {
+    left: auto;
+    right: clamp(1rem, 2vw, 1.5rem);
+}
+
+/* ---------- Custom cursor ---------- */
+.chassis-cursor {
+    position: fixed;
+    top: 0; left: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: var(--accent);
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    will-change: transform;
+}
+.chassis-cursor.visible { opacity: 1; }
+body.artifact-editor-editing .chassis-cursor { display: none; }
+
+@media (hover: none) {
+    .chassis-cursor { display: none; }
+}
+
+body.chassis-cursor-active:not(.artifact-editor-editing),
+body.chassis-cursor-active:not(.artifact-editor-editing) * { cursor: none; }
+
+/* ---------- Opt-outs ---------- */
+body[data-no-chrome] .nav-dots,
+body[data-no-chrome] .keyboard-hint,
+body[data-no-chrome] .chassis-credit,
+body[data-no-chrome] .chassis-cursor,
+body[data-no-chrome] .artifact-editor-toggle { display: none; }
+
+:fullscreen .keyboard-hint,
+:fullscreen .chassis-credit,
+:fullscreen .artifact-editor-toggle { display: none; }
+
+@media (hover: none) {
+    .keyboard-hint,
+    .chassis-credit { display: none; }
+}
+
+@media (max-width: 900px), (max-height: 560px) {
+    .nav-dots,
+    .keyboard-hint,
+    .chassis-credit,
+    .chassis-cursor { display: none; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.2s !important;
+    }
+    html { scroll-behavior: auto; }
+}
+
+/* ---------- Print (PDF export) ---------- */
+@media print {
+    .nav-dots, .keyboard-hint, .chassis-credit, .chassis-cursor { display: none !important; }
+    html, body { height: auto; overflow: visible; }
+    html { scroll-snap-type: none; }
+    .slide-viewport {
+        page-break-after: always;
+        break-after: page;
+        height: 100vh;
+    }
+    .slide-scale {
+        position: static !important;
+        transform: none !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+    .slide {
+        width: 100% !important;
+        height: auto !important;
+    }
+}
+
+</style>
+<script>
+/* =====================================================
+   PRESENTATION CHASSIS — slide controller
+   Auto-initializes on DOMContentLoaded.
+   Exposes window.slides for programmatic control.
+   ===================================================== */
+(function () {
+    'use strict';
+
+    const REVEAL_SELECTOR = '.reveal, .reveal-left, .reveal-right, .reveal-scale, .reveal-blur';
+    const STEP_SELECTOR = '.step';
+    const ALL_REVEAL_SELECTOR = REVEAL_SELECTOR + ', ' + STEP_SELECTOR;
+    const VIEWPORT_CLASS = 'slide-viewport';
+    const SCALE_CLASS = 'slide-scale';
+
+    function _detectLang() {
+        const param = new URLSearchParams(location.search).get('lang');
+        return (param || navigator.language || 'en').slice(0, 2).toLowerCase();
+    }
+
+    class SlidePresentation {
+        constructor() {
+            this.slides = Array.from(document.querySelectorAll('.slide'));
+            if (this.slides.length === 0) return;
+
+            // Ensure every slide has an id so hashes + anchor links work.
+            // Author-defined ids are preserved; the rest get slide-N (1-indexed).
+            this.slides.forEach((slide, idx) => {
+                if (!slide.id) slide.id = `slide-${idx + 1}`;
+            });
+            this.viewports = this._setupViewports();
+            this.scales = this.viewports.map((viewport) => viewport.querySelector(`.${SCALE_CLASS}`));
+
+            // Hide every reveal element BEFORE lifting the CSS FOUC guard.
+            // After this, .reveals-ready is on <html>, so CSS no longer hides
+            // reveals — inline styles keep them hidden until JS animates them.
+            this._setupReveals();
+
+            this.navDotsContainer = this._ensureNavDots();
+            this.keyboardHint = this._ensureKeyboardHint();
+            this.credit = this._ensureCredit();
+
+            this._setupCanvasScale();
+            this._setupIntersectionObserver();
+            this._setupKeyboardNav();
+            this._setupWheelNav();
+            this._setupTouchNav();
+            this._setupViewportSync();
+            this._buildNavDots();
+            this._setupHashNav();
+            this._setupCursor();
+            this._setupPrintSettling();
+
+            // If URL has a matching hash, start there; otherwise start at slide 0.
+            const initial = this._slideIndexFromHash(location.hash);
+            this.currentSlide = initial >= 0 ? initial : 0;
+            if (this.currentSlide !== 0) {
+                this._scrollToSlide(this.currentSlide, 'auto');
+            }
+            // Reveal initial slide immediately (observer may miss it on load).
+            const first = this.slides[this.currentSlide];
+            first.classList.add('visible');
+            this._playSlideReveals(first);
+            this._updateNavDots();
+        }
+
+        /* ---------- Viewport scaffolding ----------
+           Authors write .slide as the 1920×1080 artboard. The chassis wraps
+           that authored section in viewport and scale layers. */
+        _setupViewports() {
+            return this.slides.map((slide) => {
+                const existingScale = slide.parentElement?.classList.contains(SCALE_CLASS)
+                    ? slide.parentElement
+                    : null;
+                const existingViewport = existingScale?.parentElement?.classList.contains(VIEWPORT_CLASS)
+                    ? existingScale.parentElement
+                    : null;
+                if (existingViewport) {
+                    this._syncViewportBackground(slide, existingViewport);
+                    return existingViewport;
+                }
+
+                const viewport = document.createElement('div');
+                viewport.className = VIEWPORT_CLASS;
+                const scale = document.createElement('div');
+                scale.className = SCALE_CLASS;
+
+                slide.parentNode.insertBefore(viewport, slide);
+                viewport.appendChild(scale);
+                scale.appendChild(slide);
+                this._syncViewportBackground(slide, viewport);
+
+                return viewport;
+            });
+        }
+
+        _syncViewportBackground(slide, viewport) {
+            const style = getComputedStyle(slide);
+            const hasBackgroundImage = style.backgroundImage && style.backgroundImage !== 'none';
+            const hasBackgroundColor = !['rgba(0, 0, 0, 0)', 'transparent'].includes(style.backgroundColor);
+            if (hasBackgroundImage || hasBackgroundColor) {
+                viewport.style.background = style.background;
+            } else {
+                viewport.style.background = '';
+            }
+            slide.style.background = 'transparent';
+        }
+
+        /* ---------- DOM scaffolding (auto-inserted if missing) ---------- */
+        _ensureNavDots() {
+            let el = document.getElementById('navDots');
+            if (!el) {
+                el = document.createElement('nav');
+                el.id = 'navDots';
+                el.className = 'nav-dots';
+                el.setAttribute('aria-label', 'Slide navigation');
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        _ensureKeyboardHint() {
+            let el = document.querySelector('.keyboard-hint');
+            if (!el) {
+                const i18n = {
+                    en: { navigate: 'navigate', restart: 'restart', fullscreen: 'fullscreen' },
+                    es: { navigate: 'navegar',   restart: 'inicio',   fullscreen: 'fullscreen' },
+                    fr: { navigate: 'naviguer',  restart: 'début',    fullscreen: 'fullscreen' },
+                    de: { navigate: 'blättern',  restart: 'anfang',   fullscreen: 'vollbild' },
+                    pt: { navigate: 'navegar',   restart: 'início',   fullscreen: 'fullscreen' },
+                    ja: { navigate: '移動',      restart: '先頭',      fullscreen: '全画面' },
+                    ko: { navigate: '이동',      restart: '처음',      fullscreen: '전체화면' },
+                    zh: { navigate: '翻页',      restart: '重置',      fullscreen: '全屏' },
+                    it: { navigate: 'navigare',  restart: 'inizio',   fullscreen: 'fullscreen' },
+                    nl: { navigate: 'bladeren',  restart: 'begin',    fullscreen: 'vollscherm' },
+                };
+                const t = i18n[_detectLang()] || i18n.en;
+                el = document.createElement('div');
+                el.className = 'keyboard-hint';
+                el.innerHTML = `<kbd>←</kbd> <kbd>→</kbd> ${t.navigate} &middot; <kbd>R</kbd> ${t.restart} &middot; <kbd>F</kbd> ${t.fullscreen}`;
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        _ensureCredit() {
+            let el = document.querySelector('.chassis-credit');
+            if (!el) {
+                el = document.createElement('div');
+                el.className = 'chassis-credit';
+                el.setAttribute('aria-hidden', 'true');
+                el.innerHTML = '💜 by ClickUp Brain';
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        /* ---------- Reveal engine ----------
+           Reveals are driven by the Web Animations API instead of CSS
+           transitions. This lets authors put .reveal* / .step on any
+           element: animation values live in the animation cascade origin
+           and win over normal author declarations, so no wrapper element
+           is required to isolate the chassis from author CSS.
+
+           State per slide:
+           - "hidden":  inline opacity/transform/filter from the 'from'
+                        keyframe of the variant. Set on init and on
+                        forward re-entry.
+           - "played":  animation is running or has run; the class
+                        `reveals-played` on the slide makes playback
+                        idempotent so observer re-fires (resize,
+                        fullscreen) don't restart the animation.
+           - "settled": animation canceled, inline styles cleared. Used
+                        for backward entries (we skip the animation and
+                        show the final state instantly) and for print. */
+
+        _setupReveals() {
+            // Lift the CSS FOUC guard first so getComputedStyle reads each
+            // element's natural opacity, not the guard's blanket opacity: 0.
+            // No paint occurs mid-task — inline hidden styles are applied
+            // before the browser yields, so there is no visible flash.
+            document.documentElement.classList.add('reveals-ready');
+            this.slides.forEach((slide) => {
+                slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                    el._targetOpacity = parseFloat(getComputedStyle(el).opacity);
+                    this._applyHiddenStyle(el);
+                });
+            });
+        }
+
+        _setupPrintSettling() {
+            // Browsers snapshot the document for print/PDF export. WAAPI
+            // animations don't necessarily complete in that snapshot, so
+            // settle every slide to its final state first. After printing,
+            // reset — but only for slides that haven't already been viewed,
+            // so the audience experience picks up where it left off.
+            window.addEventListener('beforeprint', () => {
+                this.slides.forEach((slide) => this._settleSlide(slide));
+            });
+        }
+
+        _readTokens() {
+            const cs = getComputedStyle(document.documentElement);
+            const rawDuration = parseFloat(cs.getPropertyValue('--reveal-duration'));
+            const duration = Number.isFinite(rawDuration) ? rawDuration * 1000 : 800;
+            const ease = cs.getPropertyValue('--reveal-ease').trim() || 'cubic-bezier(0.16, 1, 0.3, 1)';
+            const distance = cs.getPropertyValue('--reveal-distance').trim() || '28px';
+            const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            return {
+                duration: reducedMotion ? 1 : duration,
+                ease,
+                distance,
+            };
+        }
+
+        _getRevealDelay(el) {
+            // Use getAttribute('class') rather than el.className: on SVG
+            // elements, `.className` is an SVGAnimatedString (not a string)
+            // and calling .match on it throws. getAttribute is uniform
+            // across HTML and SVG.
+            const classes = el.getAttribute('class') || '';
+            const m = classes.match(/\bd([1-8])\b/);
+            if (!m) return 0;
+            // Matches CSS .dN: d1 = 100ms, d2 = 250ms, +150ms per step.
+            return 100 + (parseInt(m[1], 10) - 1) * 150;
+        }
+
+        _getRevealKeyframes(el, distance) {
+            const to = el._targetOpacity ?? 1;
+            if (el.classList.contains('reveal-left')) {
+                return [
+                    { opacity: 0, transform: `translateX(calc(-1 * ${distance}))` },
+                    { opacity: to, transform: 'translateX(0)' },
+                ];
+            }
+            if (el.classList.contains('reveal-right')) {
+                return [
+                    { opacity: 0, transform: `translateX(${distance})` },
+                    { opacity: to, transform: 'translateX(0)' },
+                ];
+            }
+            if (el.classList.contains('reveal-scale')) {
+                return [
+                    { opacity: 0, transform: 'scale(0.88)' },
+                    { opacity: to, transform: 'scale(1)' },
+                ];
+            }
+            if (el.classList.contains('reveal-blur')) {
+                return [
+                    { opacity: 0, filter: 'blur(10px)' },
+                    { opacity: to, filter: 'blur(0)' },
+                ];
+            }
+            // Default: .reveal or .step (slide up + fade)
+            return [
+                { opacity: 0, transform: `translateY(${distance})` },
+                { opacity: to, transform: 'translateY(0)' },
+            ];
+        }
+
+        _applyHiddenStyle(el) {
+            const { distance } = this._readTokens();
+            const from = this._getRevealKeyframes(el, distance)[0];
+            if ('opacity' in from) el.style.opacity = from.opacity;
+            if ('transform' in from) el.style.transform = from.transform;
+            if ('filter' in from) el.style.filter = from.filter;
+        }
+
+        _clearHiddenStyle(el) {
+            el.style.opacity = '';
+            el.style.transform = '';
+            el.style.filter = '';
+        }
+
+        _cancelReveal(el) {
+            if (el._revealAnim) {
+                el._revealAnim.cancel();
+                el._revealAnim = null;
+            }
+        }
+
+        _playReveal(el, delayOverride) {
+            this._cancelReveal(el);
+            const { duration, ease, distance } = this._readTokens();
+            const delay = typeof delayOverride === 'number' ? delayOverride : this._getRevealDelay(el);
+            const keyframes = this._getRevealKeyframes(el, distance);
+            // fill: 'backwards' applies the 'from' keyframe during the
+            // stagger delay so the element stays hidden until its turn,
+            // without pinning the 'to' keyframe after the animation ends.
+            // This lets co-existing author CSS (e.g. a `.pulse` CSS
+            // animation on the same element) take over naturally once the
+            // entrance completes — otherwise our fill would mask anything
+            // the author wanted to happen post-reveal.
+            const anim = el.animate(keyframes, {
+                duration,
+                delay,
+                easing: ease,
+                fill: 'backwards',
+            });
+            el._revealAnim = anim;
+            // Safe to clear inline 'from' styles now — the animation's
+            // backwards-fill holds the element at the 'from' keyframe for
+            // the duration of any stagger delay.
+            this._clearHiddenStyle(el);
+        }
+
+        _playSlideReveals(slide) {
+            if (slide.classList.contains('reveals-played')) return;
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(REVEAL_SELECTOR).forEach((el) => this._playReveal(el));
+            // .step elements stay hidden until the user advances.
+        }
+
+        _resetSlideReveals(slide) {
+            // Forward re-entry: cancel in-flight animations, re-hide
+            // everything, and reset step state so the slide replays cleanly
+            // when the observer next adds .visible.
+            slide.classList.remove('reveals-played');
+            slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._applyHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step.step-shown').forEach((el) => el.classList.remove('step-shown'));
+        }
+
+        _settleSlide(slide) {
+            // Print / PDF export: jump to the final state with everything
+            // shown, so every step appears in the exported document.
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._clearHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step').forEach((el) => el.classList.add('step-shown'));
+        }
+
+        _rewindSlide(slide) {
+            // Backward re-entry: show reveals instantly (no replay — the
+            // viewer already saw the intro) but hide every step, so the
+            // slide is positioned at the start of its stepped content and
+            // can be stepped through again.
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._clearHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step').forEach((el) => {
+                el.classList.remove('step-shown');
+                this._cancelReveal(el);
+                this._applyHiddenStyle(el);
+            });
+        }
+
+        /* ---------- Navigation ----------
+           goTo scrolls to the target. Both forward-replay and backward-
+           rewind need to mutate the target BEFORE scrolling — while it's
+           still offscreen — so the viewer never sees the old state flash
+           into view. Resetting after the slide is in view causes a visible
+           "show then hide" blink; the IntersectionObserver fires too late
+           (80% threshold) to catch it. */
+        goTo(index) {
+            const clamped = Math.max(0, Math.min(this.slides.length - 1, index));
+            if (clamped === this.currentSlide) return;
+
+            const target = this.slides[clamped];
+            const goingForward = clamped > this.currentSlide;
+
+            if (target.classList.contains('visible')) {
+                if (goingForward) {
+                    // Forward replay: full reset so the observer can play reveals fresh.
+                    target.classList.remove('visible');
+                    this._resetSlideReveals(target);
+                } else {
+                    // Backward rewind: hide any shown steps so the slide
+                    // scrolls back in at the start of its stepped content.
+                    this._rewindSlide(target);
+                }
+            }
+
+            this._scrollToSlide(clamped, 'smooth');
+        }
+
+        _scrollToSlide(index, behavior) {
+            this.viewports[index]?.scrollIntoView({ behavior, block: 'start' });
+        }
+
+        _slideIndexFromHash(hash) {
+            if (!hash) return -1;
+            return this.slides.findIndex((s) => '#' + s.id === hash);
+        }
+
+        _syncHash() {
+            const slide = this.slides[this.currentSlide];
+            if (!slide || !slide.id) return;
+            const newHash = '#' + slide.id;
+            if (location.hash !== newHash) {
+                // replaceState — keeps the URL in sync without polluting history,
+                // so the browser back button exits the deck instead of stepping through slides.
+                try {
+                    history.replaceState(null, '', newHash);
+                } catch {
+                    // Sandboxed iframes (opaque origin, about:srcdoc) reject URL
+                    // mutation with a SecurityError. Hash sync is a nicety — an
+                    // unguarded throw here kills the observer callback before it
+                    // marks the slide visible and plays its reveals.
+                }
+            }
+        }
+
+        _setupHashNav() {
+            // React to external hash changes (anchor link clicks, back/forward if user uses pushState manually)
+            window.addEventListener('hashchange', () => {
+                const idx = this._slideIndexFromHash(location.hash);
+                if (idx >= 0 && idx !== this.currentSlide) this.goTo(idx);
+            });
+        }
+
+        /* ---------- Custom cursor ----------
+           Accent disc that follows the pointer, hidden after idle. */
+        _setupCursor() {
+            if (!matchMedia('(hover: hover)').matches) return;
+
+            const cursor = document.createElement('div');
+            cursor.className = 'chassis-cursor';
+            cursor.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(cursor);
+            document.body.classList.add('chassis-cursor-active');
+
+            const half = 16;  // matches width/height / 2 in CSS
+            const IDLE_MS = 2500;
+            let idleTimer = null;
+
+            const show = () => {
+                cursor.classList.add('visible');
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(() => {
+                    cursor.classList.remove('visible');
+                }, IDLE_MS);
+            };
+            const hide = () => {
+                clearTimeout(idleTimer);
+                cursor.classList.remove('visible');
+            };
+
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.transform = `translate3d(${e.clientX - half}px, ${e.clientY - half}px, 0)`;
+                show();
+            });
+            document.addEventListener('mouseleave', hide);
+            document.addEventListener('mouseenter', show);
+        }
+
+        /* ---------- Fullscreen ---------- */
+        toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen?.().catch(() => {});
+            } else {
+                document.exitFullscreen?.();
+            }
+        }
+
+        next() { this.goTo(this.currentSlide + 1); }
+        prev() { this.goTo(this.currentSlide - 1); }
+        first() { this.goTo(0); }
+        last() { this.goTo(this.slides.length - 1); }
+
+        /* ---------- Step-aware advance / retreat ----------
+           advance() reveals the next .step on the current slide (if any),
+           otherwise advances to the next slide. retreat() hides the last
+           revealed step, otherwise goes back to the previous slide. */
+        advance() {
+            const current = this.slides[this.currentSlide];
+            const nextStep = current?.querySelector('.step:not(.step-shown)');
+            if (nextStep) {
+                nextStep.classList.add('step-shown');
+                // No stagger on click-reveal — the user's gesture is the trigger.
+                this._playReveal(nextStep, 0);
+                return;
+            }
+            this.next();
+        }
+        retreat() {
+            const current = this.slides[this.currentSlide];
+            const shown = current?.querySelectorAll('.step.step-shown');
+            if (shown && shown.length > 0) {
+                const last = shown[shown.length - 1];
+                last.classList.remove('step-shown');
+                this._cancelReveal(last);
+                this._applyHiddenStyle(last);
+                return;
+            }
+            this.prev();
+        }
+
+        /* ---------- Intersection observer ----------
+           Fire late (>= 80% in view) so reveals play on a settled slide.
+           This is the single source of truth for active-slide state.
+
+           Forward:  add .visible, play reveals. (goTo() has already reset
+                     the target to pre-reveal state if this is a re-visit,
+                     so the animation is fresh either way.)
+           Backward: add .visible, rewind to the start of the stepped
+                     content — reveals are shown instantly (no replay) and
+                     every step is hidden again so the viewer can step
+                     through it fresh. */
+        _setupIntersectionObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    const idx = this.viewports.indexOf(entry.target);
+                    if (idx < 0) return;
+                    const slide = this.slides[idx];
+
+                    if (idx === this.currentSlide) {
+                        // Same-slide re-fire (initial load, resize, fullscreen).
+                        if (!slide.classList.contains('visible')) {
+                            slide.classList.add('visible');
+                        }
+                        // Idempotent: only plays if not already marked played.
+                        this._playSlideReveals(slide);
+                        return;
+                    }
+
+                    const goingForward = idx > this.currentSlide;
+                    this.currentSlide = idx;
+                    this._updateNavDots();
+                    this._syncHash();
+
+                    slide.classList.add('visible');
+                    if (goingForward) {
+                        this._playSlideReveals(slide);
+                    } else {
+                        this._rewindSlide(slide);
+                    }
+                });
+            }, { threshold: 0.8 });
+
+            this.viewports.forEach((viewport) => observer.observe(viewport));
+        }
+
+        /* ---------- Keyboard ---------- */
+        _setupKeyboardNav() {
+            document.addEventListener('keydown', (e) => {
+                // Skip when user is editing text
+                if (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+
+                switch (e.key) {
+                    // Step-aware: consume steps first, then advance slides
+                    case 'ArrowDown':
+                    case 'ArrowRight':
+                    case ' ':
+                        e.preventDefault(); this.advance(); break;
+                    case 'ArrowUp':
+                    case 'ArrowLeft':
+                        e.preventDefault(); this.retreat(); break;
+                    // Slide-level: always skip past steps
+                    case 'PageDown':
+                        e.preventDefault(); this.next(); break;
+                    case 'PageUp':
+                        e.preventDefault(); this.prev(); break;
+                    case 'Home':
+                        e.preventDefault(); this.first(); break;
+                    case 'End':
+                        e.preventDefault(); this.last(); break;
+                    case 'f':
+                    case 'F':
+                        e.preventDefault(); this.toggleFullscreen(); break;
+                    case 'r':
+                    case 'R':
+                        e.preventDefault(); this.first(); break;
+                }
+            });
+        }
+
+        /* ---------- Wheel / trackpad ----------
+           ALWAYS preventDefault — letting any native wheel scroll through
+           races against scrollIntoView + mandatory snap, and blocks macOS
+           two-finger horizontal swipes from triggering browser back/forward.
+           Whichever axis has the larger magnitude wins, so vertical scroll
+           and horizontal trackpad swipes both drive advance/retreat. Lock
+           briefly after a gesture so trackpad inertia (continuous small
+           deltas) can't spam next(). */
+        _setupWheelNav() {
+            let locked = false;
+            window.addEventListener('wheel', (e) => {
+                if (e.ctrlKey) return;                // preserve browser pinch-zoom (ctrl+wheel)
+                e.preventDefault();                   // block native scroll + horizontal back-swipe
+                if (locked) return;
+                const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+                if (Math.abs(delta) < 20) return;     // ignore tiny flicks
+                locked = true;
+                if (delta > 0) this.advance(); else this.retreat();
+                setTimeout(() => { locked = false; }, 500);
+            }, { passive: false });
+        }
+
+        /* ---------- Touch / swipe ----------
+           Horizontal swipes advance / retreat slides; left = next, right =
+           prev (matches stories / carousel conventions). Dominantly
+           vertical swipes fall through to native scroll-snap so the
+           existing top/bottom behavior keeps working. A time budget
+           rejects slow pans that were really aborted scrolls. */
+        _setupTouchNav() {
+            const MIN_DISTANCE = 50;     // px — below this is a tap or jitter
+            const MAX_TIME = 600;        // ms — slower than this is a pan, not a swipe
+            const DOMINANCE = 1.2;       // horizontal must beat vertical by this factor
+
+            let startX = 0, startY = 0, startTime = 0;
+            let tracking = false;
+
+            window.addEventListener('touchstart', (e) => {
+                if (document.body.classList.contains('artifact-editor-editing')) { tracking = false; return; }
+                if (e.touches.length !== 1) { tracking = false; return; }
+                const t = e.touches[0];
+                startX = t.clientX;
+                startY = t.clientY;
+                startTime = performance.now();
+                tracking = true;
+            }, { passive: true });
+
+            window.addEventListener('touchend', (e) => {
+                if (!tracking) return;
+                tracking = false;
+                const t = e.changedTouches[0];
+                const dx = t.clientX - startX;
+                const dy = t.clientY - startY;
+                const ax = Math.abs(dx), ay = Math.abs(dy);
+                if (ax < MIN_DISTANCE) return;
+                if (ax < ay * DOMINANCE) return;
+                if (performance.now() - startTime > MAX_TIME) return;
+                if (dx < 0) this.advance(); else this.retreat();
+            }, { passive: true });
+
+            window.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+        }
+
+        /* ---------- Canvas scaling ----------
+           Each scaler holds a fixed 1920×1080 slide. Compute the
+           scale factor that fits it inside the viewport and apply via
+           CSS custom property. Runs on init, resize, and fullscreen. */
+        _setupCanvasScale() {
+            const CANVAS_W = 1920;
+            const CANVAS_H = 1080;
+            const scales = this.scales;
+
+            const update = () => {
+                const scale = Math.min(
+                    window.innerWidth / CANVAS_W,
+                    window.innerHeight / CANVAS_H
+                );
+                scales.forEach((el) => {
+                    el?.style.setProperty('--slide-scale', scale);
+                });
+            };
+
+            update();
+            window.addEventListener('resize', update);
+            document.addEventListener('fullscreenchange', () => {
+                requestAnimationFrame(update);
+            });
+        }
+
+        /* ---------- Viewport sync ----------
+           Resize / fullscreenchange → realign current slide. Each slide is
+           100vh, so a viewport height change leaves the existing scroll
+           position out of alignment with the slide top; scroll-snap doesn't
+           re-snap on its own. */
+        _setupViewportSync() {
+            const realign = () => {
+                requestAnimationFrame(() => {
+                    this._scrollToSlide(this.currentSlide, 'auto');
+                });
+            };
+            window.addEventListener('resize', realign);
+            document.addEventListener('fullscreenchange', realign);
+        }
+
+        /* ---------- Nav dots ---------- */
+        _buildNavDots() {
+            // Clear first — prevents duplicates when DOM is re-serialized/re-opened
+            this.navDotsContainer.innerHTML = '';
+            this.slides.forEach((slide, idx) => {
+                const dot = document.createElement('button');
+                dot.setAttribute('aria-label', `Go to slide ${idx + 1}`);
+                if (idx === 0) dot.classList.add('active');
+                dot.addEventListener('click', () => this.goTo(idx));
+                this.navDotsContainer.appendChild(dot);
+            });
+        }
+
+        _updateNavDots() {
+            const dots = this.navDotsContainer.querySelectorAll('button');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === this.currentSlide);
+            });
+        }
+    }
+
+    /* ---------- Auto-init ---------- */
+    function init() {
+        // Each slide canvas is its own editable host for the inline editor.
+        document.querySelectorAll('.slide').forEach(function (el) {
+            el.classList.add('artifact-editable');
+        });
+        window.slides = new SlidePresentation();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+
+</script>
+<!-- /skill:chassis -->
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>W14S1 – Environmental Issues in STS | Science, Technology and Society</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&display=swap"/>
+<style>
+:root{--background:#0a0e1a;--foreground:#f0f4ff;--accent:#3b82f6;--accent-bright:#60a5fa;--accent-cyan:#22d3ee;--accent-green:#4ade80;--accent-red:#f87171;--card-bg:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 50%,#2563eb 100%);--card-dark:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);--font-display:'Archivo Black',sans-serif;--font-body:'Space Grotesk',sans-serif;--nav-dot-color:rgba(255,255,255,0.3);--nav-dot-active-color:#60a5fa}
+html,body{background:var(--background)}h1,h2,h3{font-family:var(--font-display);color:var(--foreground);margin:0}p,li,span{font-family:var(--font-body);color:var(--foreground)}
+.slide{background:linear-gradient(160deg,#0a0e1a 0%,#111827 40%,#0f172a 100%);padding:80px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden}
+.blue-card{background:var(--card-bg);border-radius:24px;padding:60px;box-shadow:0 25px 80px rgba(37,99,235,0.3)}.dark-card{background:var(--card-dark);border-radius:20px;padding:48px;border:1px solid rgba(96,165,250,0.15)}
+.section-num{font-family:var(--font-display);font-size:180px;color:rgba(96,165,250,0.08);position:absolute;top:40px;right:80px;line-height:1}
+.eyebrow{font-family:var(--font-body);font-size:24px;font-weight:600;color:var(--accent-cyan);text-transform:uppercase;letter-spacing:3px;margin-bottom:20px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:40px}.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px}
+.stat-big{font-family:var(--font-display);font-size:120px;color:var(--accent-bright);line-height:1}.stat-label{font-size:28px;color:rgba(240,244,255,0.7);margin-top:12px}
+.glow-orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:0.15;pointer-events:none}.glow-blue{background:#3b82f6}.glow-cyan{background:#22d3ee}.glow-purple{background:#8b5cf6}.glow-green{background:#22c55e}
+ul.content-list{list-style:none;padding:0;margin:0}ul.content-list li{font-size:32px;padding:12px 0;padding-left:32px;position:relative;color:rgba(240,244,255,0.85)}ul.content-list li::before{content:'▸';position:absolute;left:0;color:var(--accent-cyan);font-weight:700}
+.pill{display:inline-block;background:rgba(59,130,246,0.2);border:1px solid rgba(96,165,250,0.3);border-radius:999px;padding:8px 20px;font-size:22px;color:var(--accent-bright);margin:6px 8px 6px 0}
+.meme-frame{background:#1e293b;border-radius:16px;padding:40px;text-align:center;border:2px solid rgba(96,165,250,0.2)}.meme-text-top,.meme-text-bot{font-family:var(--font-display);font-size:42px;color:#fff;text-shadow:2px 2px 4px rgba(0,0,0,0.8)}
+.timeline-item{display:flex;align-items:flex-start;gap:24px;margin-bottom:24px}.timeline-dot{width:20px;height:20px;background:var(--accent-cyan);border-radius:50%;margin-top:8px;flex-shrink:0}
+.quiz-option{background:rgba(30,58,138,0.3);border:2px solid rgba(96,165,250,0.2);border-radius:12px;padding:16px 24px;margin-bottom:12px;font-size:28px;color:rgba(240,244,255,0.9)}.quiz-num{font-family:var(--font-display);font-size:24px;color:var(--accent-cyan);margin-right:16px}
+@keyframes pulse{0%,100%{opacity:0.1}50%{opacity:0.25}}
+</style>
+<script>
+(function(){
+  const SLIDE_TITLES=["Week 14 Session 1: ENVIRONMENTAL ISSUES","Learning Objectives","Why the Environment is an STS Issue","The Anthropocene","CLIMATE CHANGE","Climate Change: The Science","Greenhouse Effect Diagram","Global Temperature Rise","Climate Change Impacts: Global","Climate Change Impacts: Philippines","PH Climate Vulnerability Stats","Climate Change Meme","POLLUTION","Types of Pollution","Air Pollution","Water Pollution","Land/Soil Pollution","Pollution in PH: Pasig River & Manila Bay","E-WASTE","What is E-Waste?","E-Waste by the Numbers","E-Waste in the Philippines","E-Waste Lifecycle","Where Does Your Old Phone Go?","DEFORESTATION","Deforestation Facts","PH Forest Cover Loss","Why Deforestation Matters","Deforestation Meme","Science & Technology: Part of the Problem","Science & Technology: Part of the Solution","Key Takeaways","Group Activity","Quiz (Items 1-5)","Quiz (Items 6-10)","Next Session Preview"];
+  const SCRIPTS=["Good morning/afternoon! Welcome to Week 14. Today we start our second major issue in STS: Environmental Issues. Ito yung topic na literally affects ALL of us — hindi abstract concept 'to. Nararamdaman na natin ang effects ng climate change, pollution, at environmental degradation dito sa Pilipinas.","Ito ang objectives natin. By end ng session, ma-explain niyo ang connection ng science at technology sa environmental problems, ma-identify ang major issues, at ma-evaluate ang role ng tech as both cause and solution.","Bakit STS issue ang environment? Kasi science and technology ang nag-drive ng industrialization na sumira sa environment. Pero at the same time, science and technology din ang kailangan natin para mag-solve ng environmental problems. Double-edged sword.","We are living in what scientists call the ANTHROPOCENE — the geological epoch defined by human impact on Earth. Tayo ang first species na nag-alter ng buong planet. Carbon emissions, deforestation, ocean acidification — lahat human-caused.","Let's start with the biggest: CLIMATE CHANGE. Ito yung defining issue ng generation natin. Maraming misconceptions about this, so let's stick to the science.","Ang climate change ay caused by the enhanced greenhouse effect. Carbon dioxide, methane, at other greenhouse gases trap heat sa atmosphere. Since the Industrial Revolution (1760s), ang CO2 levels nag-increase ng 50%. Temperature nag-rise ng 1.1°C. Mukhang maliit, pero catastrophic ang effect.","Eto ang greenhouse effect. Sunlight enters atmosphere, hits Earth's surface, converts to heat (infrared). Normally some escapes back to space. Pero dahil sa excess greenhouse gases, trapped ang heat. Parang sasakyan na naka-park sa araw — glass traps heat inside.","Look at this number: 1.1°C average temperature rise since pre-industrial era. Paris Agreement goal: keep it below 1.5°C. Currently on track for 2.7°C by 2100 if walang major changes. Every fraction of a degree = more disasters.","Globally, climate change means: more extreme weather, rising sea levels, melting ice caps, biodiversity loss, food insecurity, climate refugees. It's not just about heat — it's about disrupting ALL natural systems.","Sa Pilipinas, SOBRANG vulnerable tayo. We're in the Pacific typhoon belt. Yolanda (Haiyan) 2013 killed 6,300+ people. Sea level rise threatens our 7,641 islands. Agriculture affected — less predictable seasons, more floods, more drought.","Numbers don't lie. Philippines is the 4th most climate-vulnerable country globally. 60% of our municipalities are coastal. Average 20 typhoons per year. Climate-related losses: ₱506 billion from 2010-2020. Grabe.","(Meme time!) Yung mga world leaders na nag-promise ng climate action sa COP meetings tapos walang nagbago after 10 years. Classic. Pero seriously, climate change is real and we feel it every typhoon season.","Next major issue: POLLUTION. Air, water, and land. Every year, pollution kills more people than wars, disasters, and hunger combined. 9 million deaths annually. That's insane.","Tatlong main types ng pollution na tatalakayin natin: Air Pollution (emissions, smog), Water Pollution (industrial waste, sewage), at Land/Soil Pollution (solid waste, chemicals, plastics).","Air pollution kills 7 million people per year globally (WHO). Sources: vehicles, factories, burning of fossil fuels, agriculture. Sa Metro Manila, the air quality index regularly hits 'unhealthy' levels. Lung disease, asthma, cancer — lahat connected.","Water pollution: 80% of global wastewater goes back to environment UNTREATED. Sources: industrial waste, agricultural runoff, sewage, plastics. Sa Pilipinas, maraming rivers ang biologically dead. Contaminated water = cholera, diarrhea, typhoid.","Land/soil pollution: solid waste mismanagement, chemical fertilizers, pesticides, mining waste. Philippines generates 21 million tons of solid waste per year. Only 28% is properly collected. The rest? Open dumps, waterways, oceans.","Real Philippine examples: Pasig River was declared 'biologically dead' in the 1990s (rehabilitation ongoing). Manila Bay cleanup — remember the white sand controversy? These show both the problem and the attempted solutions.","Next: E-WASTE. Ito yung relevant sa BSIS students especially. Every gadget you throw away is e-waste. And it's one of the fastest-growing waste streams in the world.","E-waste means discarded electronic devices: phones, laptops, TVs, batteries, cables. These contain toxic materials (lead, mercury, cadmium) but ALSO valuable materials (gold, silver, copper, rare earth metals). The problem: most e-waste is NOT properly recycled.","Global e-waste in 2022: 62 million metric tons. Only 22% formally recycled. Value of raw materials lost: $62 billion per year. Growing at 3-5% annually. Expected: 82 million tons by 2030.","Sa Pilipinas: We generate approximately 400,000 metric tons of e-waste per year. Most ends up in landfills or informal recycling (dangerous backyard operations). RA 9003 (Ecological Solid Waste Management Act) covers e-waste pero implementation is weak.","The lifecycle of electronics: Raw material mining (environmental destruction) → Manufacturing (carbon emissions) → Use (energy consumption) → Disposal (toxic waste). The whole lifecycle has environmental impact — not just disposal.","When you throw your old phone in regular trash: it ends up in landfill, toxic chemicals leach into soil and groundwater, or it gets shipped to developing countries for informal recycling where workers (sometimes children) burn electronics to extract metals. Health effects: cancer, lung disease, birth defects.","DEFORESTATION — the systematic clearing of forests. It's connected to climate change (forests absorb CO2), biodiversity loss, flooding, and indigenous displacement.","Global deforestation rate: 10 million hectares per year (an area the size of South Korea). Main drivers: agriculture (cattle, palm oil, soy), logging, urbanization, and mining. Tropical forests are most affected.","Philippines had 90% forest cover in 1900. Now? Only about 24%. We lost most of our original forests in just 100 years. Causes: illegal logging, kaingin (slash-and-burn), mining, urban expansion. Result: floods, landslides, biodiversity loss.","Forests are not just trees. They're carbon sinks (absorb CO2), water regulators (prevent floods), biodiversity homes (50% of species), oxygen producers, and livelihood sources for indigenous peoples. Lose forests = cascade of problems.","(Meme!) Mga companies na nag-plant ng 1 tree for PR pero nag-cut ng 10,000 hectares for business. The math ain't mathing! Greenwashing is real.","Science and technology CAUSED many environmental problems: industrial pollution, fossil fuel dependency, planned obsolescence of gadgets, intensive agriculture. We can't ignore that technology has a dark side.","But science and technology are also our BEST TOOLS for solutions: renewable energy, carbon capture, waste-to-energy, AI for climate modeling, satellite monitoring, biodegradable materials. The key is using tech RESPONSIBLY.","Takeaways! Climate change is human-caused and PH is highly vulnerable. Pollution kills 9M annually. E-waste is growing 3-5% per year. PH lost 66% of forest cover. S&T is both the problem AND the solution.","Group activity: Propose a tech-based solution to one environmental problem in your community. Be specific: What's the problem? What tech solution? How will it be implemented? Who benefits?","Quiz items 1-5. Mix of identification and short answer. 10 minutes total.","Items 6-10. Think about the Philippine context.","Next session: Green Technology & Sustainability — renewable energy, circular economy, Philippine environmental policies. See you!"];
+  const ANSWER_KEY=[
+    {q:"1. What is the Anthropocene? (Definition, 2 pts)",a:"The current geological epoch defined by significant human impact on Earth's climate and ecosystems, characterized by activities like carbon emissions, deforestation, and ocean acidification."},
+    {q:"2. What causes climate change? (Short answer, 3 pts)",a:"The enhanced greenhouse effect caused by excess greenhouse gases (CO2, methane) from human activities like burning fossil fuels, deforestation, and industrial processes, which trap heat in the atmosphere."},
+    {q:"3. What is e-waste? Give 2 examples. (2 pts)",a:"Discarded electronic devices. Examples: old phones, laptops, TVs, batteries, cables, printers, tablets (any 2)."},
+    {q:"4. How much e-waste does the world generate annually? (1 pt)",a:"62 million metric tons (2022)"},
+    {q:"5. Why is the Philippines highly vulnerable to climate change? Give 2 reasons. (2 pts)",a:"Any 2: Located in the Pacific typhoon belt (avg 20 typhoons/year), 60% of municipalities are coastal (sea level rise threat), archipelagic geography, agricultural economy dependent on weather."},
+    {q:"6. What is the current forest cover of the Philippines compared to 1900? (2 pts)",a:"About 24% now vs. 90% in 1900 (lost approximately 66% of forest cover in 100 years)."},
+    {q:"7. Enumerate the 3 main types of pollution discussed. (3 pts)",a:"Air pollution, Water pollution, Land/Soil pollution"},
+    {q:"8. How many people die from pollution annually according to global estimates? (1 pt)",a:"9 million deaths per year"},
+    {q:"9. What toxic materials are found in e-waste? Name at least 2. (2 pts)",a:"Any 2: Lead, mercury, cadmium, brominated flame retardants, arsenic, chromium"},
+    {q:"10. Explain how science/technology is BOTH part of the problem and the solution to environmental issues. (4 pts)",a:"Problem: industrialization caused pollution, fossil fuel dependency, planned obsolescence, intensive agriculture, deforestation for development. Solution: renewable energy, carbon capture, waste-to-energy, AI climate modeling, satellite monitoring, biodegradable materials, electric vehicles."}
+  ];
+  let scriptWin=null,answerWin=null,currentIdx=0;const totalSlides=SLIDE_TITLES.length;
+  function getScriptHTML(){let h='<!DOCTYPE html><html><head><title>Teacher Script - W14S1</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Space Grotesk",sans-serif;background:#0f172a;color:#e2e8f0;line-height:1.8;font-size:18px}.header{background:#1e293b;padding:14px 24px;position:sticky;top:0;z-index:100;border-bottom:3px solid #3b82f6}.header-top{display:flex;justify-content:space-between;align-items:center}.header h1{font-size:16px;color:#94a3b8}.slide-counter{background:#3b82f6;color:#fff;padding:5px 14px;border-radius:999px;font-size:14px;font-weight:700}.current-title{font-size:20px;font-weight:700;color:#fff;margin-top:8px}.week-title{font-size:13px;color:#60a5fa;text-transform:uppercase;letter-spacing:1.5px;font-weight:600}.script-block{padding:20px 24px;border-bottom:1px solid rgba(30,58,138,0.3);transition:all 0.15s}.script-block.active{background:rgba(59,130,246,0.15);border-left:5px solid #60a5fa;padding-left:19px}.script-block.past{opacity:0.3}.slide-label{color:#60a5fa;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px}.slide-title{color:#e2e8f0;font-weight:600;font-size:17px;margin-bottom:6px}.script-text{color:#94a3b8;font-size:15px;line-height:1.8}</style></head><body>';h+='<div class="header"><div class="header-top"><h1>📋 TEACHER SCRIPT</h1><div class="slide-counter" id="counter">1 / '+totalSlides+'</div></div><div class="week-title" id="weekTitle">WEEK 14 · SESSION 1 · ENVIRONMENTAL ISSUES</div><div class="current-title" id="curTitle">'+SLIDE_TITLES[0]+'</div></div>';SCRIPTS.forEach(function(s,i){h+='<div class="script-block" id="sb-'+i+'"><div class="slide-label">Slide '+(i+1)+'</div><div class="slide-title">'+SLIDE_TITLES[i]+'</div><div class="script-text">'+s+'</div></div>';});h+='</body></html>';return h;}
+  function getAnswerHTML(){let h='<!DOCTYPE html><html><head><title>🔑 Answer Key - W14S1</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Space Grotesk",sans-serif;background:#1a0a0a;color:#e2e8f0;line-height:1.7;font-size:17px}.header{background:#7f1d1d;padding:16px 24px;position:sticky;top:0;z-index:100;border-bottom:3px solid #dc2626}.header h1{font-size:20px;color:#fecaca}.header p{font-size:13px;color:#fca5a5;margin-top:4px}.item{padding:20px 24px;border-bottom:1px solid rgba(127,29,29,0.4)}.question{font-weight:700;color:#fca5a5;font-size:16px;margin-bottom:8px}.answer{color:#86efac;font-size:16px;padding:10px 16px;background:rgba(22,101,52,0.2);border-left:3px solid #4ade80;border-radius:0 8px 8px 0}.warning{background:#7f1d1d;color:#fecaca;padding:12px 24px;text-align:center;font-size:14px;font-weight:600}</style></head><body>';h+='<div class="header"><h1>🔑 ANSWER KEY: W14S1 Environmental Issues</h1><p>FOR TEACHER USE ONLY</p></div><div class="warning">⚠️ DO NOT SHOW TO STUDENTS ⚠️</div>';ANSWER_KEY.forEach(function(item){h+='<div class="item"><div class="question">'+item.q+'</div><div class="answer">'+item.a+'</div></div>';});h+='</body></html>';return h;}
+  function syncTo(idx){if(idx<0||idx>=totalSlides)return;currentIdx=idx;if(!scriptWin||scriptWin.closed)return;try{var d=scriptWin.document;d.getElementById('counter').textContent=(idx+1)+' / '+totalSlides;d.getElementById('curTitle').textContent=SLIDE_TITLES[idx]||'';d.querySelectorAll('.script-block').forEach(function(b,i){b.classList.remove('active','past');if(i===idx)b.classList.add('active');else if(i<idx)b.classList.add('past');});var el=d.getElementById('sb-'+idx);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}}
+  function detectSlideIndex(){if(window.slides&&typeof window.slides.currentSlide!=='undefined')return window.slides.currentSlide-1;var all=document.querySelectorAll('.slide');for(var i=0;i<all.length;i++)if(all[i].classList.contains('is-active')||all[i].classList.contains('active'))return i;var best=0,bv=-Infinity;for(var j=0;j<all.length;j++){var r=all[j].getBoundingClientRect();var v=Math.min(r.bottom,innerHeight)-Math.max(r.top,0);if(v>bv){bv=v;best=j;}}return best;}
+  function detectAndSync(){var idx=detectSlideIndex();if(idx!==currentIdx)syncTo(idx);}
+  function init(){document.addEventListener('keydown',function(e){if(e.ctrlKey&&e.shiftKey&&(e.key==='d'||e.key==='D')){e.preventDefault();if(answerWin&&!answerWin.closed){answerWin.close();answerWin=null;}else{answerWin=window.open('','answerKey','width=600,height=700,scrollbars=yes,resizable=yes');if(answerWin){answerWin.document.write(getAnswerHTML());answerWin.document.close();}}return;}if((e.key==='t'||e.key==='T')&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();if(!scriptWin||scriptWin.closed){scriptWin=window.open('','teacherScript','width=620,height=750,scrollbars=yes,resizable=yes');if(scriptWin){scriptWin.document.write(getScriptHTML());scriptWin.document.close();setTimeout(function(){syncTo(currentIdx);},100);}}else{scriptWin.focus();syncTo(currentIdx);}return;}if(['ArrowRight','ArrowLeft','ArrowUp','ArrowDown','Space',' ','PageUp','PageDown','Home','End'].indexOf(e.key)!==-1){setTimeout(detectAndSync,30);setTimeout(detectAndSync,100);}},true);document.addEventListener('click',function(){setTimeout(detectAndSync,30);setTimeout(detectAndSync,100);},true);document.addEventListener('touchend',function(){setTimeout(detectAndSync,30);setTimeout(detectAndSync,100);},true);window.addEventListener('hashchange',function(){setTimeout(detectAndSync,30);});function patchSlides(){if(!window.slides)return false;['advance','retreat','next','prev','goTo','first','last'].forEach(function(m){if(typeof window.slides[m]==='function'&&!window.slides[m].__p){var o=window.slides[m];window.slides[m]=function(){var r=o.apply(this,arguments);setTimeout(detectAndSync,5);setTimeout(detectAndSync,50);return r;};window.slides[m].__p=true;}});return true;}if(!patchSlides()){var t=0,iv=setInterval(function(){if(patchSlides()||++t>60)clearInterval(iv);},80);}var obs=new MutationObserver(function(){setTimeout(detectAndSync,10);});document.querySelectorAll('.slide').forEach(function(s){obs.observe(s,{attributes:true,attributeFilter:['class']});});setInterval(detectAndSync,250);}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+</head>
+<body>
+
+<!-- SLIDE 1 -->
+<section class="slide"><div class="glow-orb glow-green" style="width:600px;height:600px;top:-200px;right:-100px;"></div><div class="glow-orb glow-cyan" style="width:400px;height:400px;bottom:-100px;left:-50px;"></div><span class="section-num reveal d1">14</span><span class="eyebrow reveal d1">Week 14 · Session 1</span><h1 style="font-size:88px;line-height:1.05;margin-bottom:24px;" class="reveal d2">ENVIRONMENTAL<br>ISSUES IN STS</h1><h2 style="font-size:40px;font-weight:400;font-family:var(--font-body);color:var(--accent-bright);margin-bottom:40px;" class="reveal d3">Climate Change · Pollution · E-Waste · Deforestation</h2><p style="font-size:28px;color:rgba(240,244,255,0.6);" class="reveal d4">Science, Technology and Society · GEC Course</p></section>
+
+<!-- SLIDE 2 -->
+<section class="slide"><span class="section-num reveal d1">01</span><span class="eyebrow reveal d1">Learning Objectives</span><h2 style="font-size:56px;margin-bottom:40px;" class="reveal d2">What You'll Learn Today</h2><ul class="content-list"><li class="step">Explain the connection between S&T and environmental degradation</li><li class="step">Describe climate change causes, effects, and PH vulnerability</li><li class="step">Identify major pollution types and their impacts</li><li class="step">Analyze the e-waste crisis and its implications</li><li class="step">Evaluate deforestation causes in Philippine context</li></ul></section>
+
+<!-- SLIDE 3 -->
+<section class="slide"><div class="glow-orb glow-purple" style="width:500px;height:500px;top:50%;left:-150px;transform:translateY(-50%);"></div><span class="section-num reveal d1">02</span><span class="eyebrow reveal d1">Big Picture</span><h2 style="font-size:52px;margin-bottom:32px;" class="reveal d2">Why the Environment is an STS Issue</h2><div class="blue-card reveal d3" style="max-width:1200px;"><p style="font-size:32px;color:#fff;margin:0 0 16px 0;"><span style="color:var(--accent-cyan);font-weight:700;">Science & Technology</span> drove industrialization that damaged the environment.</p><p style="font-size:32px;color:#fff;margin:0;"><span style="color:var(--accent-green);font-weight:700;">Science & Technology</span> is also our best hope for fixing it.</p><p style="font-size:26px;color:rgba(255,255,255,0.6);margin-top:20px;margin-bottom:0;">The double-edged sword of progress.</p></div></section>
+
+<!-- SLIDE 4 -->
+<section class="slide"><span class="section-num reveal d1">02</span><span class="eyebrow reveal d1">Context</span><h2 style="font-size:56px;margin-bottom:32px;" class="reveal d2">The Anthropocene</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:30px;color:rgba(240,244,255,0.9);margin:0 0 20px 0;">We live in the <strong style="color:var(--accent-cyan);">Anthropocene</strong> — the geological epoch defined by <strong>human impact</strong> on Earth's systems.</p><div style="display:flex;gap:16px;flex-wrap:wrap;"><span class="pill">Carbon Emissions ↑ 50%</span><span class="pill">Ocean Acidification ↑ 30%</span><span class="pill">Species Extinction ↑ 1000x</span><span class="pill">Deforestation ↑ 80%</span></div></div></section>
+
+<!-- SLIDE 5 -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;"><div class="glow-orb glow-blue" style="width:900px;height:900px;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 5s ease-in-out infinite;"></div><span class="eyebrow reveal d1">Issue 1</span><h1 style="font-size:96px;line-height:1.05;" class="reveal d2">CLIMATE<br>CHANGE</h1><p style="font-size:32px;color:var(--accent-bright);margin-top:24px;" class="reveal d3">The Defining Crisis of Our Generation</p></section>
+
+<!-- SLIDE 6 -->
+<section class="slide"><span class="section-num reveal d1">03</span><span class="eyebrow reveal d1">The Science</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Climate Change: The Science</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;"><strong style="color:var(--accent-cyan);">Cause:</strong> Enhanced greenhouse effect from excess CO2 & methane</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;"><strong style="color:var(--accent-cyan);">Since Industrial Revolution:</strong> CO2 increased 50% (280→420 ppm)</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;"><strong style="color:var(--accent-cyan);">Temperature rise:</strong> +1.1°C average global temperature</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0;"><strong style="color:var(--accent-cyan);">Sources:</strong> Fossil fuels (73%), agriculture (12%), industry (6%)</p></div></section>
+
+<!-- SLIDE 7 -->
+<section class="slide"><span class="section-num reveal d1">03</span><span class="eyebrow reveal d1">How It Works</span><h2 style="font-size:48px;margin-bottom:32px;" class="reveal d2">Greenhouse Effect Diagram</h2><div style="display:flex;align-items:center;gap:16px;justify-content:center;flex-wrap:wrap;" class="reveal d3"><div class="diagram-box">☀️ Sunlight<br><span style="font-size:20px;color:rgba(240,244,255,0.7);">enters atmosphere</span></div><div class="diagram-arrow">→</div><div class="diagram-box">🌍 Earth Surface<br><span style="font-size:20px;color:rgba(240,244,255,0.7);">absorbs & re-emits as heat</span></div><div class="diagram-arrow">→</div><div class="diagram-box">🔥 GHGs Trap Heat<br><span style="font-size:20px;color:rgba(240,244,255,0.7);">CO2, methane, N2O</span></div><div class="diagram-arrow">→</div><div class="diagram-box">🌡️ Temperature ↑<br><span style="font-size:20px;color:rgba(240,244,255,0.7);">global warming</span></div></div><p style="font-size:26px;color:var(--accent-cyan);text-align:center;margin-top:28px;" class="reveal d4">Like a car parked in the sun — glass traps heat inside 🚗☀️</p></section>
+
+<!-- SLIDE 8 -->
+<section class="slide"><span class="section-num reveal d1">03</span><span class="eyebrow reveal d1">The Numbers</span><h2 style="font-size:48px;margin-bottom:36px;" class="reveal d2">Global Temperature Rise</h2><div class="grid-3 reveal d3"><div style="text-align:center;"><p class="stat-big step" style="color:#fbbf24;">1.1°C</p><p class="stat-label">current warming</p></div><div style="text-align:center;"><p class="stat-big step" style="color:#f87171;">1.5°C</p><p class="stat-label">Paris Agreement limit</p></div><div style="text-align:center;"><p class="stat-big step" style="color:#dc2626;">2.7°C</p><p class="stat-label">projected by 2100 (current path)</p></div></div></section>
+
+<!-- SLIDE 9 -->
+<section class="slide"><span class="section-num reveal d1">03</span><span class="eyebrow reveal d1">Global Impact</span><h2 style="font-size:48px;margin-bottom:32px;" class="reveal d2">Climate Change Impacts: Global</h2><div class="grid-2"><div class="dark-card step"><h3 style="font-size:26px;color:var(--accent-cyan);margin-bottom:12px;">🌊 Sea Level Rise</h3><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0;">+20cm since 1900. Threatening island nations and coastal cities.</p></div><div class="dark-card step"><h3 style="font-size:26px;color:var(--accent-cyan);margin-bottom:12px;">🌪️ Extreme Weather</h3><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0;">More intense hurricanes, floods, droughts, heatwaves.</p></div><div class="dark-card step"><h3 style="font-size:26px;color:var(--accent-cyan);margin-bottom:12px;">🐻‍❄️ Biodiversity Loss</h3><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0;">1 million species face extinction. Coral reefs dying.</p></div><div class="dark-card step"><h3 style="font-size:26px;color:var(--accent-cyan);margin-bottom:12px;">🌾 Food Insecurity</h3><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0;">Crop yields declining. Fisheries collapsing. 2B at risk.</p></div></div></section>
+
+<!-- SLIDE 10 -->
+<section class="slide"><div class="glow-orb glow-blue" style="width:500px;height:500px;top:-100px;left:-100px;"></div><span class="section-num reveal d1">03</span><span class="eyebrow reveal d1">Philippine Context 🇵🇭</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Climate Change Impacts: Philippines</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 12px 0;">🌀 <strong style="color:#f87171;">Typhoon Yolanda (2013):</strong> 6,300+ deaths, $2.9B damage</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 12px 0;">🌊 <strong style="color:#fbbf24;">Sea level rise:</strong> Threatens 60% of coastal municipalities</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 12px 0;">🌾 <strong style="color:var(--accent-cyan);">Agriculture:</strong> Unpredictable seasons, crop failures</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0;">💧 <strong style="color:#c084fc;">Water:</strong> Droughts in dry season, flooding in wet season</p></div></section>
+
+<!-- SLIDE 11 -->
+<section class="slide"><span class="section-num reveal d1">03</span><span class="eyebrow reveal d1">Stats 🇵🇭</span><h2 style="font-size:48px;margin-bottom:36px;" class="reveal d2">PH Climate Vulnerability Stats</h2><div class="grid-2 reveal d3"><div style="text-align:center;"><p class="stat-big step" style="font-size:100px;">4th</p><p class="stat-label">most climate-vulnerable country globally</p></div><div style="text-align:center;"><p class="stat-big step" style="font-size:100px;">20</p><p class="stat-label">average typhoons per year</p></div><div style="text-align:center;"><p class="stat-big step" style="font-size:80px;">₱506B</p><p class="stat-label">climate losses 2010-2020</p></div><div style="text-align:center;"><p class="stat-big step" style="font-size:80px;">60%</p><p class="stat-label">coastal municipalities at risk</p></div></div></section>
+
+<!-- SLIDE 12 -->
+<section class="slide" style="justify-content:center;align-items:center;"><div class="meme-frame reveal d2" style="max-width:900px;padding:60px;"><p class="meme-text-top" style="margin:0 0 30px 0;">WORLD LEADERS SA COP MEETINGS:</p><p style="font-size:100px;margin:20px 0;">🤝📸</p><p class="meme-text-bot" style="margin:30px 0 0 0;">"WE PROMISE CLIMATE ACTION!"<br><span style="font-size:30px;color:rgba(255,255,255,0.6);">*10 years later: emissions still rising*</span></p></div></section>
+
+<!-- SLIDE 13 -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;"><div class="glow-orb glow-purple" style="width:800px;height:800px;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 4s ease-in-out infinite;"></div><span class="eyebrow reveal d1">Issue 2</span><h1 style="font-size:96px;line-height:1.05;" class="reveal d2">POLLUTION</h1><p style="font-size:32px;color:var(--accent-red);margin-top:24px;" class="reveal d3">9 Million Deaths Per Year</p><p style="font-size:26px;color:rgba(240,244,255,0.6);margin-top:16px;" class="reveal d4">More than wars, disasters, and hunger combined.</p></section>
+
+<!-- SLIDE 14 -->
+<section class="slide"><span class="section-num reveal d1">04</span><span class="eyebrow reveal d1">Overview</span><h2 style="font-size:52px;margin-bottom:36px;" class="reveal d2">Types of Pollution</h2><div class="grid-3"><div class="blue-card step" style="padding:36px;text-align:center;"><p style="font-size:44px;margin:0 0 12px 0;">💨</p><h3 style="font-size:28px;color:#fff;margin-bottom:10px;">Air Pollution</h3><p style="font-size:22px;color:rgba(255,255,255,0.8);margin:0;">7M deaths/year<br>Vehicles, factories, fossil fuels</p></div><div class="blue-card step" style="padding:36px;text-align:center;"><p style="font-size:44px;margin:0 0 12px 0;">🌊</p><h3 style="font-size:28px;color:#fff;margin-bottom:10px;">Water Pollution</h3><p style="font-size:22px;color:rgba(255,255,255,0.8);margin:0;">80% wastewater untreated<br>Industrial, sewage, plastics</p></div><div class="blue-card step" style="padding:36px;text-align:center;"><p style="font-size:44px;margin:0 0 12px 0;">🗑️</p><h3 style="font-size:28px;color:#fff;margin-bottom:10px;">Land/Soil Pollution</h3><p style="font-size:22px;color:rgba(255,255,255,0.8);margin:0;">21M tons waste/year (PH)<br>Chemicals, plastics, mining</p></div></div></section>
+
+<!-- SLIDE 15 -->
+<section class="slide"><span class="section-num reveal d1">04</span><span class="eyebrow reveal d1">Air</span><h2 style="font-size:52px;margin-bottom:28px;" class="reveal d2">Air Pollution</h2><div class="dark-card reveal d3" style="max-width:1200px;"><div style="display:flex;gap:40px;"><div style="flex:1;"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:12px;">Sources:</h3><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Vehicle emissions (EDSA = smog)</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Factory/power plant emissions</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0;">• Burning of waste & fossil fuels</p></div><div style="flex:1;"><h3 style="font-size:24px;color:#f87171;margin-bottom:12px;">Health Effects:</h3><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Asthma & respiratory diseases</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Lung cancer</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0;">• Heart disease & stroke</p></div></div></div><p style="font-size:24px;color:var(--accent-cyan);margin-top:20px;" class="reveal d4">Metro Manila air quality regularly hits "unhealthy" levels on AQI</p></section>
+
+<!-- SLIDE 16 -->
+<section class="slide"><span class="section-num reveal d1">04</span><span class="eyebrow reveal d1">Water</span><h2 style="font-size:52px;margin-bottom:28px;" class="reveal d2">Water Pollution</h2><div class="dark-card reveal d3" style="max-width:1200px;"><div style="display:flex;gap:40px;"><div style="flex:1;"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:12px;">Sources:</h3><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Industrial waste discharge</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Agricultural runoff (pesticides)</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0;">• Untreated sewage & plastics</p></div><div style="flex:1;"><h3 style="font-size:24px;color:#f87171;margin-bottom:12px;">PH Reality:</h3><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• 50+ rivers classified biologically dead</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Only 10% of sewage treated in Metro Manila</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0;">• 3rd largest source of ocean plastic globally</p></div></div></div></section>
+
+<!-- SLIDE 17 -->
+<section class="slide"><span class="section-num reveal d1">04</span><span class="eyebrow reveal d1">Land</span><h2 style="font-size:52px;margin-bottom:28px;" class="reveal d2">Land/Soil Pollution</h2><div class="dark-card reveal d3" style="max-width:1200px;"><div style="display:flex;gap:40px;"><div style="flex:1;"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:12px;">Key Stats (PH):</h3><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• 21M tons solid waste/year</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Only 28% properly collected</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0;">• 900+ open dumpsites (should be 0)</p></div><div style="flex:1;"><h3 style="font-size:24px;color:#f87171;margin-bottom:12px;">Effects:</h3><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Groundwater contamination</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Soil infertility (agriculture)</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0;">• Flooding (clogged waterways)</p></div></div></div></section>
+
+<!-- SLIDE 18 -->
+<section class="slide"><span class="section-num reveal d1">04</span><span class="eyebrow reveal d1">Case Studies 🇵🇭</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Pollution in PH: Pasig River & Manila Bay</h2><div class="grid-2 reveal d3"><div class="dark-card"><h3 style="font-size:26px;color:var(--accent-cyan);margin-bottom:12px;">🏙️ Pasig River</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Declared "biologically dead" (1990s)</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• PRRC rehabilitation since 1999</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">• Fish spotted again (2019) — progress!</p></div><div class="dark-card"><h3 style="font-size:26px;color:var(--accent-cyan);margin-bottom:12px;">🏖️ Manila Bay</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• 2019 cleanup (SC Mandamus)</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• White sand controversy (dolomite)</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">• Coliform levels still dangerously high</p></div></div></section>
+
+<!-- SLIDE 19 -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;"><div class="glow-orb glow-cyan" style="width:800px;height:800px;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 4s ease-in-out infinite;"></div><span class="eyebrow reveal d1">Issue 3</span><h1 style="font-size:96px;line-height:1.05;" class="reveal d2">E-WASTE</h1><p style="font-size:32px;color:var(--accent-bright);margin-top:24px;" class="reveal d3">The Fastest-Growing Waste Stream</p><p style="font-size:26px;color:rgba(240,244,255,0.6);margin-top:16px;" class="reveal d4">Especially relevant for IT students 💻📱</p></section>
+
+<!-- SLIDE 20 -->
+<section class="slide"><span class="section-num reveal d1">05</span><span class="eyebrow reveal d1">Definition</span><h2 style="font-size:52px;margin-bottom:28px;" class="reveal d2">What is E-Waste?</h2><div class="blue-card reveal d3" style="max-width:1200px;"><p style="font-size:32px;color:#fff;margin:0 0 20px 0;">Discarded electronic devices containing <span style="color:#f87171;font-weight:700;">toxic materials</span> AND <span style="color:#4ade80;font-weight:700;">valuable materials</span>.</p><div style="display:flex;gap:24px;flex-wrap:wrap;"><span class="pill">📱 Phones</span><span class="pill">💻 Laptops</span><span class="pill">📺 TVs</span><span class="pill">🔋 Batteries</span><span class="pill">🖨️ Printers</span><span class="pill">🎮 Consoles</span></div><p style="font-size:24px;color:rgba(255,255,255,0.6);margin-top:16px;margin-bottom:0;">Toxic: Lead, Mercury, Cadmium | Valuable: Gold, Silver, Copper, Rare Earth</p></div></section>
+
+<!-- SLIDE 21 -->
+<section class="slide"><span class="section-num reveal d1">05</span><span class="eyebrow reveal d1">Global Scale</span><h2 style="font-size:48px;margin-bottom:36px;" class="reveal d2">E-Waste by the Numbers</h2><div class="grid-3 reveal d3"><div style="text-align:center;"><p class="stat-big step" style="font-size:100px;">62M</p><p class="stat-label">metric tons generated (2022)</p></div><div style="text-align:center;"><p class="stat-big step" style="font-size:100px;">22%</p><p class="stat-label">formally recycled</p></div><div style="text-align:center;"><p class="stat-big step" style="font-size:100px;">$62B</p><p class="stat-label">value of materials lost annually</p></div></div></section>
+
+<!-- SLIDE 22 -->
+<section class="slide"><div class="glow-orb glow-blue" style="width:400px;height:400px;bottom:-100px;right:-50px;"></div><span class="section-num reveal d1">05</span><span class="eyebrow reveal d1">Philippine Context 🇵🇭</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">E-Waste in the Philippines</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">📊 <strong style="color:var(--accent-cyan);">~400,000 metric tons</strong> e-waste generated per year</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">🗑️ Most ends up in <strong style="color:#f87171;">landfills or informal recycling</strong></p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">⚖️ RA 9003 (Ecological Solid Waste Management Act) covers e-waste</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0;">⚠️ <strong style="color:#fbbf24;">Implementation remains weak</strong> — limited collection programs</p></div></section>
+
+<!-- SLIDE 23 -->
+<section class="slide"><span class="section-num reveal d1">05</span><span class="eyebrow reveal d1">Lifecycle</span><h2 style="font-size:48px;margin-bottom:32px;" class="reveal d2">E-Waste Lifecycle</h2><div style="display:flex;align-items:center;gap:16px;justify-content:center;flex-wrap:wrap;" class="reveal d3"><div class="diagram-box" style="border-color:rgba(248,113,113,0.4);">⛏️ Mining<br><span style="font-size:20px;color:rgba(240,244,255,0.7);">Environmental destruction</span></div><div class="diagram-arrow">→</div><div class="diagram-box" style="border-color:rgba(251,191,36,0.4);">🏭 Manufacturing<br><span style="font-size:20px;color:rgba(240,244,255,0.7);">Carbon emissions</span></div><div class="diagram-arrow">→</div><div class="diagram-box" style="border-color:rgba(96,165,250,0.4);">📱 Use<br><span style="font-size:20px;color:rgba(240,244,255,0.7);">Energy consumption</span></div><div class="diagram-arrow">→</div><div class="diagram-box" style="border-color:rgba(248,113,113,0.4);">🗑️ Disposal<br><span style="font-size:20px;color:rgba(240,244,255,0.7);">Toxic waste</span></div></div><p style="font-size:24px;color:#fbbf24;text-align:center;margin-top:24px;" class="reveal d4">⚠️ ENTIRE lifecycle has environmental impact — not just disposal</p></section>
+
+<!-- SLIDE 24 -->
+<section class="slide"><span class="section-num reveal d1">05</span><span class="eyebrow reveal d1">The Dark Side</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Where Does Your Old Phone Go?</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">1️⃣ <strong>Landfill:</strong> Toxic chemicals leach into soil & groundwater</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">2️⃣ <strong>Shipped overseas:</strong> To developing countries for informal recycling</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">3️⃣ <strong>Burned:</strong> Workers (sometimes children) extract metals by burning</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0;"><strong style="color:#f87171;">Health effects:</strong> Cancer, lung disease, birth defects, neurological damage</p></div></section>
+
+<!-- SLIDE 25 -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;"><div class="glow-orb glow-green" style="width:800px;height:800px;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 4s ease-in-out infinite;"></div><span class="eyebrow reveal d1">Issue 4</span><h1 style="font-size:96px;line-height:1.05;" class="reveal d2">DEFORESTATION</h1><p style="font-size:32px;color:var(--accent-bright);margin-top:24px;" class="reveal d3">Losing Our Lungs</p></section>
+
+<!-- SLIDE 26 -->
+<section class="slide"><span class="section-num reveal d1">06</span><span class="eyebrow reveal d1">Global</span><h2 style="font-size:52px;margin-bottom:28px;" class="reveal d2">Deforestation Facts</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">🌳 <strong style="color:#f87171;">10 million hectares</strong> cleared per year (size of South Korea)</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">🐄 Main drivers: cattle ranching, palm oil, soy, logging, urbanization</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">🌡️ Deforestation contributes <strong style="color:var(--accent-cyan);">~15%</strong> of global carbon emissions</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0;">🦎 Tropical forests hold <strong>50% of all species</strong> on Earth</p></div></section>
+
+<!-- SLIDE 27 -->
+<section class="slide"><span class="section-num reveal d1">06</span><span class="eyebrow reveal d1">Philippines 🇵🇭</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">PH Forest Cover Loss</h2><div class="grid-2 reveal d3"><div style="text-align:center;"><p class="stat-big step" style="font-size:100px;color:#4ade80;">90%</p><p class="stat-label">Forest cover in 1900</p></div><div style="text-align:center;"><p class="stat-big step" style="font-size:100px;color:#f87171;">24%</p><p class="stat-label">Forest cover today</p></div></div><div class="dark-card" style="margin-top:28px;"><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0;"><strong style="color:var(--accent-cyan);">Causes:</strong> Illegal logging, kaingin (slash-and-burn), mining, urban expansion, commercial plantations</p></div></section>
+
+<!-- SLIDE 28 -->
+<section class="slide"><span class="section-num reveal d1">06</span><span class="eyebrow reveal d1">Why It Matters</span><h2 style="font-size:48px;margin-bottom:32px;" class="reveal d2">Why Deforestation Matters</h2><div class="grid-2"><div class="dark-card step"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:10px;">🌍 Carbon Sinks</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">Forests absorb CO2. Cut them = more greenhouse gases.</p></div><div class="dark-card step"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:10px;">💧 Water Regulation</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">Prevent floods & landslides. No trees = Ormoc tragedy.</p></div><div class="dark-card step"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:10px;">🦜 Biodiversity</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">50% of species depend on forests. Philippine Eagle endangered.</p></div><div class="dark-card step"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:10px;">👥 Indigenous Peoples</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">14M IPs in PH depend on forests for livelihood & culture.</p></div></div></section>
+
+<!-- SLIDE 29 -->
+<section class="slide" style="justify-content:center;align-items:center;"><div class="meme-frame reveal d2" style="max-width:900px;padding:60px;"><p class="meme-text-top" style="margin:0 0 30px 0;">COMPANIES: "WE PLANTED 1 TREE!" 🌱</p><p style="font-size:100px;margin:20px 0;">🪓🌲🌲🌲🌲</p><p class="meme-text-bot" style="margin:30px 0 0 0;">ALSO COMPANIES: *cut 10,000 hectares for business*</p></div><p style="font-size:24px;color:rgba(240,244,255,0.5);text-align:center;margin-top:20px;" class="reveal d3">Greenwashing: Making destruction look eco-friendly since forever 🌿</p></section>
+
+<!-- SLIDE 30 -->
+<section class="slide"><span class="section-num reveal d1">07</span><span class="eyebrow reveal d1">S&T as Problem</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Science & Technology: Part of the Problem</h2><ul class="content-list" style="max-width:1100px;"><li class="step" style="font-size:28px;">Industrial Revolution = fossil fuel dependency</li><li class="step" style="font-size:28px;">Planned obsolescence = more e-waste (new phone every year)</li><li class="step" style="font-size:28px;">Intensive agriculture = chemical runoff & soil degradation</li><li class="step" style="font-size:28px;">Transportation tech = vehicle emissions & urban sprawl</li><li class="step" style="font-size:28px;">Mining for tech materials = habitat destruction</li></ul></section>
+
+<!-- SLIDE 31 -->
+<section class="slide"><div class="glow-orb glow-green" style="width:600px;height:600px;bottom:-200px;right:-100px;"></div><span class="section-num reveal d1">07</span><span class="eyebrow reveal d1">S&T as Solution</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Science & Technology: Part of the Solution</h2><ul class="content-list" style="max-width:1100px;"><li class="step" style="font-size:28px;">Renewable energy (solar, wind, hydro, geothermal)</li><li class="step" style="font-size:28px;">Carbon capture & storage technology</li><li class="step" style="font-size:28px;">AI/satellite monitoring for deforestation</li><li class="step" style="font-size:28px;">Biodegradable materials & bioplastics</li><li class="step" style="font-size:28px;">Electric vehicles & green transportation</li><li class="step" style="font-size:28px;">Waste-to-energy conversion</li></ul></section>
+
+<!-- SLIDE 32 -->
+<section class="slide"><div class="glow-orb glow-blue" style="width:600px;height:600px;bottom:-200px;left:-100px;"></div><span class="section-num reveal d1">08</span><span class="eyebrow reveal d1">Summary</span><h2 style="font-size:56px;margin-bottom:36px;" class="reveal d2">Key Takeaways 🔑</h2><ul class="content-list" style="max-width:1200px;"><li class="step" style="font-size:28px;">Climate change: human-caused, PH is 4th most vulnerable</li><li class="step" style="font-size:28px;">Pollution kills 9M/year; PH is 3rd largest ocean plastic source</li><li class="step" style="font-size:28px;">E-waste: 62M tons globally, growing 3-5% annually</li><li class="step" style="font-size:28px;">PH forest cover: 90% (1900) → 24% (today)</li><li class="step" style="font-size:28px;">S&T is both cause and solution — the key is responsible use</li></ul></section>
+
+<!-- SLIDE 33 -->
+<section class="slide"><span class="section-num reveal d1">09</span><span class="eyebrow reveal d1">Activity</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Group Activity: Tech Solutions 💡</h2><div class="blue-card reveal d3" style="max-width:1200px;"><p style="font-size:26px;color:#fff;margin:0 0 16px 0;font-weight:600;">Propose a tech-based solution to an environmental problem in YOUR community:</p><p style="font-size:24px;color:rgba(255,255,255,0.9);margin:0 0 10px 0;">1️⃣ What specific environmental problem do you see locally?</p><p style="font-size:24px;color:rgba(255,255,255,0.9);margin:0 0 10px 0;">2️⃣ What technology can help solve it?</p><p style="font-size:24px;color:rgba(255,255,255,0.9);margin:0 0 10px 0;">3️⃣ How would you implement it? (realistic steps)</p><p style="font-size:24px;color:rgba(255,255,255,0.9);margin:0;">4️⃣ Who benefits and what's the expected impact?</p></div></section>
+
+<!-- SLIDE 34 -->
+<section class="slide"><span class="section-num reveal d1">10</span><span class="eyebrow reveal d1">📝 Short Quiz</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Quiz Time! (Items 1-5)</h2><div style="max-width:1200px;"><div class="quiz-option step"><span class="quiz-num">1.</span> What is the Anthropocene? (Definition, 2 pts)</div><div class="quiz-option step"><span class="quiz-num">2.</span> What causes climate change? (Short answer, 3 pts)</div><div class="quiz-option step"><span class="quiz-num">3.</span> What is e-waste? Give 2 examples. (2 pts)</div><div class="quiz-option step"><span class="quiz-num">4.</span> How much e-waste does the world generate annually? (1 pt)</div><div class="quiz-option step"><span class="quiz-num">5.</span> Why is PH highly vulnerable to climate change? 2 reasons. (2 pts)</div></div></section>
+
+<!-- SLIDE 35 -->
+<section class="slide"><span class="section-num reveal d1">10</span><span class="eyebrow reveal d1">📝 Short Quiz</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Quiz (Items 6-10)</h2><div style="max-width:1200px;"><div class="quiz-option step"><span class="quiz-num">6.</span> What is PH forest cover now vs. 1900? (2 pts)</div><div class="quiz-option step"><span class="quiz-num">7.</span> Enumerate the 3 main types of pollution. (3 pts)</div><div class="quiz-option step"><span class="quiz-num">8.</span> How many people die from pollution annually? (1 pt)</div><div class="quiz-option step"><span class="quiz-num">9.</span> Name 2 toxic materials found in e-waste. (2 pts)</div><div class="quiz-option step"><span class="quiz-num">10.</span> Explain how S&T is both problem and solution. (4 pts)</div></div><p style="font-size:24px;color:var(--accent-cyan);margin-top:20px;" class="reveal d3">Total: 22 points · Time: 10 minutes ⏱️</p></section>
+
+<!-- SLIDE 36 -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;"><div class="glow-orb glow-green" style="width:600px;height:600px;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 5s ease-in-out infinite;"></div><span class="eyebrow reveal d1">Coming Up</span><h2 style="font-size:64px;margin-bottom:24px;" class="reveal d2">Next Session:</h2><h1 style="font-size:68px;color:var(--accent-green);" class="reveal d3">Green Technology &<br>Sustainability</h1><p style="font-size:28px;color:rgba(240,244,255,0.6);margin-top:32px;" class="reveal d4">Renewable Energy · Circular Economy · PH Environmental Policies</p></section>
+
+</body>
+</html>

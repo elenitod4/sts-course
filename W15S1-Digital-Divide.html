@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- skill:chassis -->
+<style>
+/* =====================================================
+   PRESENTATION CHASSIS — style-invariant base styles
+   Fixed 1920×1080 canvas scaled to fit any viewport.
+   Customize colors, fonts, and chrome via :root tokens.
+   ===================================================== */
+
+/* ---------- Universal reset ---------- */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ---------- Theme tokens (override in your deck's CSS) ---------- */
+:root {
+    color-scheme: light;
+
+    --background:      #ffffff;
+    --foreground:      #111111;
+    --card:            #f5f5f5;
+    --card-foreground: var(--foreground);
+    --accent:          #c94a3d;
+    --accent-foreground: #ffffff;
+
+    --muted-foreground: color-mix(in srgb, var(--foreground) 55%, transparent);
+    --border:           color-mix(in srgb, var(--foreground) 12%, transparent);
+
+    --font-display: Georgia, serif;
+    --font-body: -apple-system, system-ui, sans-serif;
+    --font-mono: ui-monospace, monospace;
+
+    /* Reveal animation */
+    --reveal-duration: 0.8s;
+    --reveal-ease:     cubic-bezier(0.16, 1, 0.3, 1);
+    --reveal-distance: 28px;
+
+    /* Chrome (nav dots, keyboard hint) */
+    --nav-dot-size: 9px;
+    --nav-dot-radius: 50%;
+    --nav-dot-color: var(--foreground);
+    --nav-dot-active-color: var(--accent);
+    --nav-dot-opacity: 0.4;
+}
+
+/* ---------- Viewport lock + scroll snap ---------- */
+html, body { height: 100%; overflow-x: hidden; }
+html {
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+}
+
+html, body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+/* ---------- Type scale ----------
+   Fixed px sizes on a 1920×1080 canvas. The canvas is scaled to fit
+   any viewport via transform, so these sizes are absolute within the
+   design surface — no responsive units needed. */
+body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body);
+    font-size: 36px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1 { font-size: 120px; line-height: 1.05; letter-spacing: -0.02em; }
+h2 { font-size: 64px; line-height: 1.1; letter-spacing: -0.01em; }
+h3 { font-size: 44px; line-height: 1.2; }
+.eyebrow {
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1.3;
+}
+
+ul, ol { padding-left: 48px; display: flex; flex-direction: column; gap: 24px; }
+li::marker { color: var(--accent); }
+
+/* ---------- Slide structure ----------
+   .slide is the authored 1920×1080 artboard.
+   The chassis wraps it in viewport + scale layers at runtime. */
+.slide-viewport {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: block;
+    position: relative;
+    background: var(--background);
+    isolation: isolate;
+    z-index: 1;
+}
+
+.slide-scale {
+    width: 1920px;
+    height: 1080px;
+    transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+    transform-origin: center center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+}
+
+.slide {
+    width: 1920px;
+    height: 1080px;
+    padding: 80px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 60px;
+    position: relative;
+    background: transparent;
+}
+
+
+/* ---------- Image defaults ---------- */
+img, .image-container {
+    max-width: 100%;
+    max-height: 540px;
+    object-fit: contain;
+}
+
+/* ---------- Reveal primitives ----------
+   Driven by chassis.js via the Web Animations API, not CSS transitions.
+   Put .reveal* or .step on ANY element — author CSS on the same element
+   (opacity, transform, transition, filter) never conflicts, because
+   WAAPI animations live in the animation cascade origin and win over
+   normal author declarations. The .dN stagger classes below still apply
+   to theme-authored CSS animations via animation-delay.
+
+   Variants: .reveal (fade + up), .reveal-left, .reveal-right,
+   .reveal-scale, .reveal-blur. .step stays hidden until the user
+   advances forward. Don't combine .step with .reveal* on the same
+   element. */
+
+/* FOUC guard: hide reveals until chassis.js marks the document ready. */
+:root:not(.reveals-ready) .reveal,
+:root:not(.reveals-ready) .reveal-left,
+:root:not(.reveals-ready) .reveal-right,
+:root:not(.reveals-ready) .reveal-scale,
+:root:not(.reveals-ready) .reveal-blur,
+:root:not(.reveals-ready) .step {
+    opacity: 0;
+}
+:root:not(.reveals-ready) .reveal-blur { filter: blur(10px); }
+
+/* ---------- Stagger delays (.d1 … .d8) ---------- */
+.slide.visible .d1 { transition-delay: 0.10s; animation-delay: 0.10s; }
+.slide.visible .d2 { transition-delay: 0.25s; animation-delay: 0.25s; }
+.slide.visible .d3 { transition-delay: 0.40s; animation-delay: 0.40s; }
+.slide.visible .d4 { transition-delay: 0.55s; animation-delay: 0.55s; }
+.slide.visible .d5 { transition-delay: 0.70s; animation-delay: 0.70s; }
+.slide.visible .d6 { transition-delay: 0.85s; animation-delay: 0.85s; }
+.slide.visible .d7 { transition-delay: 1.00s; animation-delay: 1.00s; }
+.slide.visible .d8 { transition-delay: 1.15s; animation-delay: 1.15s; }
+
+/* ---------- Nav dots ----------
+   Default: right-center (vertical stack on right edge).
+   Override with <body data-nav="bottom | top-right | hidden">. */
+.nav-dots {
+    position: fixed;
+    right: clamp(0.6rem, 1.5vw, 1.4rem);
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.5rem, 1vh, 0.8rem);
+    z-index: 50;
+}
+
+body[data-nav="bottom"] .nav-dots {
+    right: auto;
+    top: auto;
+    bottom: clamp(1rem, 2.5vh, 2rem);
+    left: 50%;
+    transform: translateX(-50%);
+    flex-direction: row;
+}
+
+body[data-nav="top-right"] .nav-dots {
+    right: clamp(1rem, 2.5vw, 2rem);
+    top: clamp(1rem, 2.5vh, 2rem);
+    transform: none;
+    flex-direction: row;
+}
+
+body[data-nav="hidden"] .nav-dots { display: none; }
+
+body[data-nav="bottom"] .keyboard-hint {
+    left: clamp(1rem, 2vw, 1.5rem);
+    transform: none;
+}
+
+.nav-dots button {
+    width: var(--nav-dot-size);
+    height: var(--nav-dot-size);
+    border-radius: var(--nav-dot-radius);
+    border: 1.5px solid var(--nav-dot-color);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.3s ease;
+    opacity: var(--nav-dot-opacity);
+}
+.nav-dots button:hover { opacity: 0.85; transform: scale(1.15); }
+.nav-dots button:focus-visible {
+    outline: 2px solid var(--nav-dot-active-color);
+    outline-offset: 3px;
+    opacity: 1;
+}
+.nav-dots button.active {
+    background: var(--nav-dot-active-color);
+    border-color: var(--nav-dot-active-color);
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+/* ---------- Keyboard hint ---------- */
+.keyboard-hint {
+    position: fixed;
+    bottom: clamp(0.6rem, 1.2vh, 1rem);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted-foreground);
+    z-index: 50;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.keyboard-hint kbd {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.9em;
+    padding: 0.05em 0.4em;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--background);
+    margin: 0 0.15em;
+}
+
+/* ---------- Credit line ---------- */
+.chassis-credit {
+    position: fixed;
+    bottom: clamp(0.6rem, 1.2vh, 1rem);
+    left: clamp(1rem, 2vw, 1.5rem);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted-foreground);
+    letter-spacing: 0.02em;
+    z-index: 50;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.chassis-credit .chassis-credit-emoji {
+    font-style: normal;
+    margin: 0 0.15em;
+}
+
+body[data-nav="bottom"] .chassis-credit {
+    left: auto;
+    right: clamp(1rem, 2vw, 1.5rem);
+}
+
+/* ---------- Custom cursor ---------- */
+.chassis-cursor {
+    position: fixed;
+    top: 0; left: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: var(--accent);
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    will-change: transform;
+}
+.chassis-cursor.visible { opacity: 1; }
+body.artifact-editor-editing .chassis-cursor { display: none; }
+
+@media (hover: none) {
+    .chassis-cursor { display: none; }
+}
+
+body.chassis-cursor-active:not(.artifact-editor-editing),
+body.chassis-cursor-active:not(.artifact-editor-editing) * { cursor: none; }
+
+/* ---------- Opt-outs ---------- */
+body[data-no-chrome] .nav-dots,
+body[data-no-chrome] .keyboard-hint,
+body[data-no-chrome] .chassis-credit,
+body[data-no-chrome] .chassis-cursor,
+body[data-no-chrome] .artifact-editor-toggle { display: none; }
+
+:fullscreen .keyboard-hint,
+:fullscreen .chassis-credit,
+:fullscreen .artifact-editor-toggle { display: none; }
+
+@media (hover: none) {
+    .keyboard-hint,
+    .chassis-credit { display: none; }
+}
+
+@media (max-width: 900px), (max-height: 560px) {
+    .nav-dots,
+    .keyboard-hint,
+    .chassis-credit,
+    .chassis-cursor { display: none; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.2s !important;
+    }
+    html { scroll-behavior: auto; }
+}
+
+/* ---------- Print (PDF export) ---------- */
+@media print {
+    .nav-dots, .keyboard-hint, .chassis-credit, .chassis-cursor { display: none !important; }
+    html, body { height: auto; overflow: visible; }
+    html { scroll-snap-type: none; }
+    .slide-viewport {
+        page-break-after: always;
+        break-after: page;
+        height: 100vh;
+    }
+    .slide-scale {
+        position: static !important;
+        transform: none !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+    .slide {
+        width: 100% !important;
+        height: auto !important;
+    }
+}
+
+</style>
+<script>
+/* =====================================================
+   PRESENTATION CHASSIS — slide controller
+   Auto-initializes on DOMContentLoaded.
+   Exposes window.slides for programmatic control.
+   ===================================================== */
+(function () {
+    'use strict';
+
+    const REVEAL_SELECTOR = '.reveal, .reveal-left, .reveal-right, .reveal-scale, .reveal-blur';
+    const STEP_SELECTOR = '.step';
+    const ALL_REVEAL_SELECTOR = REVEAL_SELECTOR + ', ' + STEP_SELECTOR;
+    const VIEWPORT_CLASS = 'slide-viewport';
+    const SCALE_CLASS = 'slide-scale';
+
+    function _detectLang() {
+        const param = new URLSearchParams(location.search).get('lang');
+        return (param || navigator.language || 'en').slice(0, 2).toLowerCase();
+    }
+
+    class SlidePresentation {
+        constructor() {
+            this.slides = Array.from(document.querySelectorAll('.slide'));
+            if (this.slides.length === 0) return;
+
+            // Ensure every slide has an id so hashes + anchor links work.
+            // Author-defined ids are preserved; the rest get slide-N (1-indexed).
+            this.slides.forEach((slide, idx) => {
+                if (!slide.id) slide.id = `slide-${idx + 1}`;
+            });
+            this.viewports = this._setupViewports();
+            this.scales = this.viewports.map((viewport) => viewport.querySelector(`.${SCALE_CLASS}`));
+
+            // Hide every reveal element BEFORE lifting the CSS FOUC guard.
+            // After this, .reveals-ready is on <html>, so CSS no longer hides
+            // reveals — inline styles keep them hidden until JS animates them.
+            this._setupReveals();
+
+            this.navDotsContainer = this._ensureNavDots();
+            this.keyboardHint = this._ensureKeyboardHint();
+            this.credit = this._ensureCredit();
+
+            this._setupCanvasScale();
+            this._setupIntersectionObserver();
+            this._setupKeyboardNav();
+            this._setupWheelNav();
+            this._setupTouchNav();
+            this._setupViewportSync();
+            this._buildNavDots();
+            this._setupHashNav();
+            this._setupCursor();
+            this._setupPrintSettling();
+
+            // If URL has a matching hash, start there; otherwise start at slide 0.
+            const initial = this._slideIndexFromHash(location.hash);
+            this.currentSlide = initial >= 0 ? initial : 0;
+            if (this.currentSlide !== 0) {
+                this._scrollToSlide(this.currentSlide, 'auto');
+            }
+            // Reveal initial slide immediately (observer may miss it on load).
+            const first = this.slides[this.currentSlide];
+            first.classList.add('visible');
+            this._playSlideReveals(first);
+            this._updateNavDots();
+        }
+
+        /* ---------- Viewport scaffolding ----------
+           Authors write .slide as the 1920×1080 artboard. The chassis wraps
+           that authored section in viewport and scale layers. */
+        _setupViewports() {
+            return this.slides.map((slide) => {
+                const existingScale = slide.parentElement?.classList.contains(SCALE_CLASS)
+                    ? slide.parentElement
+                    : null;
+                const existingViewport = existingScale?.parentElement?.classList.contains(VIEWPORT_CLASS)
+                    ? existingScale.parentElement
+                    : null;
+                if (existingViewport) {
+                    this._syncViewportBackground(slide, existingViewport);
+                    return existingViewport;
+                }
+
+                const viewport = document.createElement('div');
+                viewport.className = VIEWPORT_CLASS;
+                const scale = document.createElement('div');
+                scale.className = SCALE_CLASS;
+
+                slide.parentNode.insertBefore(viewport, slide);
+                viewport.appendChild(scale);
+                scale.appendChild(slide);
+                this._syncViewportBackground(slide, viewport);
+
+                return viewport;
+            });
+        }
+
+        _syncViewportBackground(slide, viewport) {
+            const style = getComputedStyle(slide);
+            const hasBackgroundImage = style.backgroundImage && style.backgroundImage !== 'none';
+            const hasBackgroundColor = !['rgba(0, 0, 0, 0)', 'transparent'].includes(style.backgroundColor);
+            if (hasBackgroundImage || hasBackgroundColor) {
+                viewport.style.background = style.background;
+            } else {
+                viewport.style.background = '';
+            }
+            slide.style.background = 'transparent';
+        }
+
+        /* ---------- DOM scaffolding (auto-inserted if missing) ---------- */
+        _ensureNavDots() {
+            let el = document.getElementById('navDots');
+            if (!el) {
+                el = document.createElement('nav');
+                el.id = 'navDots';
+                el.className = 'nav-dots';
+                el.setAttribute('aria-label', 'Slide navigation');
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        _ensureKeyboardHint() {
+            let el = document.querySelector('.keyboard-hint');
+            if (!el) {
+                const i18n = {
+                    en: { navigate: 'navigate', restart: 'restart', fullscreen: 'fullscreen' },
+                    es: { navigate: 'navegar',   restart: 'inicio',   fullscreen: 'fullscreen' },
+                    fr: { navigate: 'naviguer',  restart: 'début',    fullscreen: 'fullscreen' },
+                    de: { navigate: 'blättern',  restart: 'anfang',   fullscreen: 'vollbild' },
+                    pt: { navigate: 'navegar',   restart: 'início',   fullscreen: 'fullscreen' },
+                    ja: { navigate: '移動',      restart: '先頭',      fullscreen: '全画面' },
+                    ko: { navigate: '이동',      restart: '처음',      fullscreen: '전체화면' },
+                    zh: { navigate: '翻页',      restart: '重置',      fullscreen: '全屏' },
+                    it: { navigate: 'navigare',  restart: 'inizio',   fullscreen: 'fullscreen' },
+                    nl: { navigate: 'bladeren',  restart: 'begin',    fullscreen: 'vollscherm' },
+                };
+                const t = i18n[_detectLang()] || i18n.en;
+                el = document.createElement('div');
+                el.className = 'keyboard-hint';
+                el.innerHTML = `<kbd>←</kbd> <kbd>→</kbd> ${t.navigate} &middot; <kbd>R</kbd> ${t.restart} &middot; <kbd>F</kbd> ${t.fullscreen}`;
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        _ensureCredit() {
+            let el = document.querySelector('.chassis-credit');
+            if (!el) {
+                el = document.createElement('div');
+                el.className = 'chassis-credit';
+                el.setAttribute('aria-hidden', 'true');
+                el.innerHTML = '💜 by ClickUp Brain';
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        /* ---------- Reveal engine ----------
+           Reveals are driven by the Web Animations API instead of CSS
+           transitions. This lets authors put .reveal* / .step on any
+           element: animation values live in the animation cascade origin
+           and win over normal author declarations, so no wrapper element
+           is required to isolate the chassis from author CSS.
+
+           State per slide:
+           - "hidden":  inline opacity/transform/filter from the 'from'
+                        keyframe of the variant. Set on init and on
+                        forward re-entry.
+           - "played":  animation is running or has run; the class
+                        `reveals-played` on the slide makes playback
+                        idempotent so observer re-fires (resize,
+                        fullscreen) don't restart the animation.
+           - "settled": animation canceled, inline styles cleared. Used
+                        for backward entries (we skip the animation and
+                        show the final state instantly) and for print. */
+
+        _setupReveals() {
+            // Lift the CSS FOUC guard first so getComputedStyle reads each
+            // element's natural opacity, not the guard's blanket opacity: 0.
+            // No paint occurs mid-task — inline hidden styles are applied
+            // before the browser yields, so there is no visible flash.
+            document.documentElement.classList.add('reveals-ready');
+            this.slides.forEach((slide) => {
+                slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                    el._targetOpacity = parseFloat(getComputedStyle(el).opacity);
+                    this._applyHiddenStyle(el);
+                });
+            });
+        }
+
+        _setupPrintSettling() {
+            // Browsers snapshot the document for print/PDF export. WAAPI
+            // animations don't necessarily complete in that snapshot, so
+            // settle every slide to its final state first. After printing,
+            // reset — but only for slides that haven't already been viewed,
+            // so the audience experience picks up where it left off.
+            window.addEventListener('beforeprint', () => {
+                this.slides.forEach((slide) => this._settleSlide(slide));
+            });
+        }
+
+        _readTokens() {
+            const cs = getComputedStyle(document.documentElement);
+            const rawDuration = parseFloat(cs.getPropertyValue('--reveal-duration'));
+            const duration = Number.isFinite(rawDuration) ? rawDuration * 1000 : 800;
+            const ease = cs.getPropertyValue('--reveal-ease').trim() || 'cubic-bezier(0.16, 1, 0.3, 1)';
+            const distance = cs.getPropertyValue('--reveal-distance').trim() || '28px';
+            const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            return {
+                duration: reducedMotion ? 1 : duration,
+                ease,
+                distance,
+            };
+        }
+
+        _getRevealDelay(el) {
+            // Use getAttribute('class') rather than el.className: on SVG
+            // elements, `.className` is an SVGAnimatedString (not a string)
+            // and calling .match on it throws. getAttribute is uniform
+            // across HTML and SVG.
+            const classes = el.getAttribute('class') || '';
+            const m = classes.match(/\bd([1-8])\b/);
+            if (!m) return 0;
+            // Matches CSS .dN: d1 = 100ms, d2 = 250ms, +150ms per step.
+            return 100 + (parseInt(m[1], 10) - 1) * 150;
+        }
+
+        _getRevealKeyframes(el, distance) {
+            const to = el._targetOpacity ?? 1;
+            if (el.classList.contains('reveal-left')) {
+                return [
+                    { opacity: 0, transform: `translateX(calc(-1 * ${distance}))` },
+                    { opacity: to, transform: 'translateX(0)' },
+                ];
+            }
+            if (el.classList.contains('reveal-right')) {
+                return [
+                    { opacity: 0, transform: `translateX(${distance})` },
+                    { opacity: to, transform: 'translateX(0)' },
+                ];
+            }
+            if (el.classList.contains('reveal-scale')) {
+                return [
+                    { opacity: 0, transform: 'scale(0.88)' },
+                    { opacity: to, transform: 'scale(1)' },
+                ];
+            }
+            if (el.classList.contains('reveal-blur')) {
+                return [
+                    { opacity: 0, filter: 'blur(10px)' },
+                    { opacity: to, filter: 'blur(0)' },
+                ];
+            }
+            // Default: .reveal or .step (slide up + fade)
+            return [
+                { opacity: 0, transform: `translateY(${distance})` },
+                { opacity: to, transform: 'translateY(0)' },
+            ];
+        }
+
+        _applyHiddenStyle(el) {
+            const { distance } = this._readTokens();
+            const from = this._getRevealKeyframes(el, distance)[0];
+            if ('opacity' in from) el.style.opacity = from.opacity;
+            if ('transform' in from) el.style.transform = from.transform;
+            if ('filter' in from) el.style.filter = from.filter;
+        }
+
+        _clearHiddenStyle(el) {
+            el.style.opacity = '';
+            el.style.transform = '';
+            el.style.filter = '';
+        }
+
+        _cancelReveal(el) {
+            if (el._revealAnim) {
+                el._revealAnim.cancel();
+                el._revealAnim = null;
+            }
+        }
+
+        _playReveal(el, delayOverride) {
+            this._cancelReveal(el);
+            const { duration, ease, distance } = this._readTokens();
+            const delay = typeof delayOverride === 'number' ? delayOverride : this._getRevealDelay(el);
+            const keyframes = this._getRevealKeyframes(el, distance);
+            // fill: 'backwards' applies the 'from' keyframe during the
+            // stagger delay so the element stays hidden until its turn,
+            // without pinning the 'to' keyframe after the animation ends.
+            // This lets co-existing author CSS (e.g. a `.pulse` CSS
+            // animation on the same element) take over naturally once the
+            // entrance completes — otherwise our fill would mask anything
+            // the author wanted to happen post-reveal.
+            const anim = el.animate(keyframes, {
+                duration,
+                delay,
+                easing: ease,
+                fill: 'backwards',
+            });
+            el._revealAnim = anim;
+            // Safe to clear inline 'from' styles now — the animation's
+            // backwards-fill holds the element at the 'from' keyframe for
+            // the duration of any stagger delay.
+            this._clearHiddenStyle(el);
+        }
+
+        _playSlideReveals(slide) {
+            if (slide.classList.contains('reveals-played')) return;
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(REVEAL_SELECTOR).forEach((el) => this._playReveal(el));
+            // .step elements stay hidden until the user advances.
+        }
+
+        _resetSlideReveals(slide) {
+            // Forward re-entry: cancel in-flight animations, re-hide
+            // everything, and reset step state so the slide replays cleanly
+            // when the observer next adds .visible.
+            slide.classList.remove('reveals-played');
+            slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._applyHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step.step-shown').forEach((el) => el.classList.remove('step-shown'));
+        }
+
+        _settleSlide(slide) {
+            // Print / PDF export: jump to the final state with everything
+            // shown, so every step appears in the exported document.
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._clearHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step').forEach((el) => el.classList.add('step-shown'));
+        }
+
+        _rewindSlide(slide) {
+            // Backward re-entry: show reveals instantly (no replay — the
+            // viewer already saw the intro) but hide every step, so the
+            // slide is positioned at the start of its stepped content and
+            // can be stepped through again.
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._clearHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step').forEach((el) => {
+                el.classList.remove('step-shown');
+                this._cancelReveal(el);
+                this._applyHiddenStyle(el);
+            });
+        }
+
+        /* ---------- Navigation ----------
+           goTo scrolls to the target. Both forward-replay and backward-
+           rewind need to mutate the target BEFORE scrolling — while it's
+           still offscreen — so the viewer never sees the old state flash
+           into view. Resetting after the slide is in view causes a visible
+           "show then hide" blink; the IntersectionObserver fires too late
+           (80% threshold) to catch it. */
+        goTo(index) {
+            const clamped = Math.max(0, Math.min(this.slides.length - 1, index));
+            if (clamped === this.currentSlide) return;
+
+            const target = this.slides[clamped];
+            const goingForward = clamped > this.currentSlide;
+
+            if (target.classList.contains('visible')) {
+                if (goingForward) {
+                    // Forward replay: full reset so the observer can play reveals fresh.
+                    target.classList.remove('visible');
+                    this._resetSlideReveals(target);
+                } else {
+                    // Backward rewind: hide any shown steps so the slide
+                    // scrolls back in at the start of its stepped content.
+                    this._rewindSlide(target);
+                }
+            }
+
+            this._scrollToSlide(clamped, 'smooth');
+        }
+
+        _scrollToSlide(index, behavior) {
+            this.viewports[index]?.scrollIntoView({ behavior, block: 'start' });
+        }
+
+        _slideIndexFromHash(hash) {
+            if (!hash) return -1;
+            return this.slides.findIndex((s) => '#' + s.id === hash);
+        }
+
+        _syncHash() {
+            const slide = this.slides[this.currentSlide];
+            if (!slide || !slide.id) return;
+            const newHash = '#' + slide.id;
+            if (location.hash !== newHash) {
+                // replaceState — keeps the URL in sync without polluting history,
+                // so the browser back button exits the deck instead of stepping through slides.
+                try {
+                    history.replaceState(null, '', newHash);
+                } catch {
+                    // Sandboxed iframes (opaque origin, about:srcdoc) reject URL
+                    // mutation with a SecurityError. Hash sync is a nicety — an
+                    // unguarded throw here kills the observer callback before it
+                    // marks the slide visible and plays its reveals.
+                }
+            }
+        }
+
+        _setupHashNav() {
+            // React to external hash changes (anchor link clicks, back/forward if user uses pushState manually)
+            window.addEventListener('hashchange', () => {
+                const idx = this._slideIndexFromHash(location.hash);
+                if (idx >= 0 && idx !== this.currentSlide) this.goTo(idx);
+            });
+        }
+
+        /* ---------- Custom cursor ----------
+           Accent disc that follows the pointer, hidden after idle. */
+        _setupCursor() {
+            if (!matchMedia('(hover: hover)').matches) return;
+
+            const cursor = document.createElement('div');
+            cursor.className = 'chassis-cursor';
+            cursor.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(cursor);
+            document.body.classList.add('chassis-cursor-active');
+
+            const half = 16;  // matches width/height / 2 in CSS
+            const IDLE_MS = 2500;
+            let idleTimer = null;
+
+            const show = () => {
+                cursor.classList.add('visible');
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(() => {
+                    cursor.classList.remove('visible');
+                }, IDLE_MS);
+            };
+            const hide = () => {
+                clearTimeout(idleTimer);
+                cursor.classList.remove('visible');
+            };
+
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.transform = `translate3d(${e.clientX - half}px, ${e.clientY - half}px, 0)`;
+                show();
+            });
+            document.addEventListener('mouseleave', hide);
+            document.addEventListener('mouseenter', show);
+        }
+
+        /* ---------- Fullscreen ---------- */
+        toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen?.().catch(() => {});
+            } else {
+                document.exitFullscreen?.();
+            }
+        }
+
+        next() { this.goTo(this.currentSlide + 1); }
+        prev() { this.goTo(this.currentSlide - 1); }
+        first() { this.goTo(0); }
+        last() { this.goTo(this.slides.length - 1); }
+
+        /* ---------- Step-aware advance / retreat ----------
+           advance() reveals the next .step on the current slide (if any),
+           otherwise advances to the next slide. retreat() hides the last
+           revealed step, otherwise goes back to the previous slide. */
+        advance() {
+            const current = this.slides[this.currentSlide];
+            const nextStep = current?.querySelector('.step:not(.step-shown)');
+            if (nextStep) {
+                nextStep.classList.add('step-shown');
+                // No stagger on click-reveal — the user's gesture is the trigger.
+                this._playReveal(nextStep, 0);
+                return;
+            }
+            this.next();
+        }
+        retreat() {
+            const current = this.slides[this.currentSlide];
+            const shown = current?.querySelectorAll('.step.step-shown');
+            if (shown && shown.length > 0) {
+                const last = shown[shown.length - 1];
+                last.classList.remove('step-shown');
+                this._cancelReveal(last);
+                this._applyHiddenStyle(last);
+                return;
+            }
+            this.prev();
+        }
+
+        /* ---------- Intersection observer ----------
+           Fire late (>= 80% in view) so reveals play on a settled slide.
+           This is the single source of truth for active-slide state.
+
+           Forward:  add .visible, play reveals. (goTo() has already reset
+                     the target to pre-reveal state if this is a re-visit,
+                     so the animation is fresh either way.)
+           Backward: add .visible, rewind to the start of the stepped
+                     content — reveals are shown instantly (no replay) and
+                     every step is hidden again so the viewer can step
+                     through it fresh. */
+        _setupIntersectionObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    const idx = this.viewports.indexOf(entry.target);
+                    if (idx < 0) return;
+                    const slide = this.slides[idx];
+
+                    if (idx === this.currentSlide) {
+                        // Same-slide re-fire (initial load, resize, fullscreen).
+                        if (!slide.classList.contains('visible')) {
+                            slide.classList.add('visible');
+                        }
+                        // Idempotent: only plays if not already marked played.
+                        this._playSlideReveals(slide);
+                        return;
+                    }
+
+                    const goingForward = idx > this.currentSlide;
+                    this.currentSlide = idx;
+                    this._updateNavDots();
+                    this._syncHash();
+
+                    slide.classList.add('visible');
+                    if (goingForward) {
+                        this._playSlideReveals(slide);
+                    } else {
+                        this._rewindSlide(slide);
+                    }
+                });
+            }, { threshold: 0.8 });
+
+            this.viewports.forEach((viewport) => observer.observe(viewport));
+        }
+
+        /* ---------- Keyboard ---------- */
+        _setupKeyboardNav() {
+            document.addEventListener('keydown', (e) => {
+                // Skip when user is editing text
+                if (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+
+                switch (e.key) {
+                    // Step-aware: consume steps first, then advance slides
+                    case 'ArrowDown':
+                    case 'ArrowRight':
+                    case ' ':
+                        e.preventDefault(); this.advance(); break;
+                    case 'ArrowUp':
+                    case 'ArrowLeft':
+                        e.preventDefault(); this.retreat(); break;
+                    // Slide-level: always skip past steps
+                    case 'PageDown':
+                        e.preventDefault(); this.next(); break;
+                    case 'PageUp':
+                        e.preventDefault(); this.prev(); break;
+                    case 'Home':
+                        e.preventDefault(); this.first(); break;
+                    case 'End':
+                        e.preventDefault(); this.last(); break;
+                    case 'f':
+                    case 'F':
+                        e.preventDefault(); this.toggleFullscreen(); break;
+                    case 'r':
+                    case 'R':
+                        e.preventDefault(); this.first(); break;
+                }
+            });
+        }
+
+        /* ---------- Wheel / trackpad ----------
+           ALWAYS preventDefault — letting any native wheel scroll through
+           races against scrollIntoView + mandatory snap, and blocks macOS
+           two-finger horizontal swipes from triggering browser back/forward.
+           Whichever axis has the larger magnitude wins, so vertical scroll
+           and horizontal trackpad swipes both drive advance/retreat. Lock
+           briefly after a gesture so trackpad inertia (continuous small
+           deltas) can't spam next(). */
+        _setupWheelNav() {
+            let locked = false;
+            window.addEventListener('wheel', (e) => {
+                if (e.ctrlKey) return;                // preserve browser pinch-zoom (ctrl+wheel)
+                e.preventDefault();                   // block native scroll + horizontal back-swipe
+                if (locked) return;
+                const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+                if (Math.abs(delta) < 20) return;     // ignore tiny flicks
+                locked = true;
+                if (delta > 0) this.advance(); else this.retreat();
+                setTimeout(() => { locked = false; }, 500);
+            }, { passive: false });
+        }
+
+        /* ---------- Touch / swipe ----------
+           Horizontal swipes advance / retreat slides; left = next, right =
+           prev (matches stories / carousel conventions). Dominantly
+           vertical swipes fall through to native scroll-snap so the
+           existing top/bottom behavior keeps working. A time budget
+           rejects slow pans that were really aborted scrolls. */
+        _setupTouchNav() {
+            const MIN_DISTANCE = 50;     // px — below this is a tap or jitter
+            const MAX_TIME = 600;        // ms — slower than this is a pan, not a swipe
+            const DOMINANCE = 1.2;       // horizontal must beat vertical by this factor
+
+            let startX = 0, startY = 0, startTime = 0;
+            let tracking = false;
+
+            window.addEventListener('touchstart', (e) => {
+                if (document.body.classList.contains('artifact-editor-editing')) { tracking = false; return; }
+                if (e.touches.length !== 1) { tracking = false; return; }
+                const t = e.touches[0];
+                startX = t.clientX;
+                startY = t.clientY;
+                startTime = performance.now();
+                tracking = true;
+            }, { passive: true });
+
+            window.addEventListener('touchend', (e) => {
+                if (!tracking) return;
+                tracking = false;
+                const t = e.changedTouches[0];
+                const dx = t.clientX - startX;
+                const dy = t.clientY - startY;
+                const ax = Math.abs(dx), ay = Math.abs(dy);
+                if (ax < MIN_DISTANCE) return;
+                if (ax < ay * DOMINANCE) return;
+                if (performance.now() - startTime > MAX_TIME) return;
+                if (dx < 0) this.advance(); else this.retreat();
+            }, { passive: true });
+
+            window.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+        }
+
+        /* ---------- Canvas scaling ----------
+           Each scaler holds a fixed 1920×1080 slide. Compute the
+           scale factor that fits it inside the viewport and apply via
+           CSS custom property. Runs on init, resize, and fullscreen. */
+        _setupCanvasScale() {
+            const CANVAS_W = 1920;
+            const CANVAS_H = 1080;
+            const scales = this.scales;
+
+            const update = () => {
+                const scale = Math.min(
+                    window.innerWidth / CANVAS_W,
+                    window.innerHeight / CANVAS_H
+                );
+                scales.forEach((el) => {
+                    el?.style.setProperty('--slide-scale', scale);
+                });
+            };
+
+            update();
+            window.addEventListener('resize', update);
+            document.addEventListener('fullscreenchange', () => {
+                requestAnimationFrame(update);
+            });
+        }
+
+        /* ---------- Viewport sync ----------
+           Resize / fullscreenchange → realign current slide. Each slide is
+           100vh, so a viewport height change leaves the existing scroll
+           position out of alignment with the slide top; scroll-snap doesn't
+           re-snap on its own. */
+        _setupViewportSync() {
+            const realign = () => {
+                requestAnimationFrame(() => {
+                    this._scrollToSlide(this.currentSlide, 'auto');
+                });
+            };
+            window.addEventListener('resize', realign);
+            document.addEventListener('fullscreenchange', realign);
+        }
+
+        /* ---------- Nav dots ---------- */
+        _buildNavDots() {
+            // Clear first — prevents duplicates when DOM is re-serialized/re-opened
+            this.navDotsContainer.innerHTML = '';
+            this.slides.forEach((slide, idx) => {
+                const dot = document.createElement('button');
+                dot.setAttribute('aria-label', `Go to slide ${idx + 1}`);
+                if (idx === 0) dot.classList.add('active');
+                dot.addEventListener('click', () => this.goTo(idx));
+                this.navDotsContainer.appendChild(dot);
+            });
+        }
+
+        _updateNavDots() {
+            const dots = this.navDotsContainer.querySelectorAll('button');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === this.currentSlide);
+            });
+        }
+    }
+
+    /* ---------- Auto-init ---------- */
+    function init() {
+        // Each slide canvas is its own editable host for the inline editor.
+        document.querySelectorAll('.slide').forEach(function (el) {
+            el.classList.add('artifact-editable');
+        });
+        window.slides = new SlidePresentation();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+
+</script>
+<!-- /skill:chassis -->
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>W15S1 – The Digital Divide | STS</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&display=swap"/>
+<style>
+:root{--background:#0a0e1a;--foreground:#f0f4ff;--accent:#3b82f6;--accent-bright:#60a5fa;--accent-cyan:#22d3ee;--card-bg:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 50%,#2563eb 100%);--card-dark:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);--font-display:'Archivo Black',sans-serif;--font-body:'Space Grotesk',sans-serif;--nav-dot-color:rgba(255,255,255,0.3);--nav-dot-active-color:#60a5fa}
+html,body{background:var(--background)}h1,h2,h3{font-family:var(--font-display);color:var(--foreground);margin:0}p,li,span{font-family:var(--font-body);color:var(--foreground)}
+.slide{background:linear-gradient(160deg,#0a0e1a 0%,#111827 40%,#0f172a 100%);padding:80px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden}
+.blue-card{background:var(--card-bg);border-radius:24px;padding:60px;box-shadow:0 25px 80px rgba(37,99,235,0.3)}.dark-card{background:var(--card-dark);border-radius:20px;padding:48px;border:1px solid rgba(96,165,250,0.15)}
+.section-num{font-family:var(--font-display);font-size:180px;color:rgba(96,165,250,0.08);position:absolute;top:40px;right:80px;line-height:1}
+.eyebrow{font-family:var(--font-body);font-size:24px;font-weight:600;color:var(--accent-cyan);text-transform:uppercase;letter-spacing:3px;margin-bottom:20px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:40px}.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:32px}
+.stat-big{font-family:var(--font-display);font-size:120px;color:var(--accent-bright);line-height:1}.stat-label{font-size:28px;color:rgba(240,244,255,0.7);margin-top:12px}
+.glow-orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:0.15;pointer-events:none}.glow-blue{background:#3b82f6}.glow-cyan{background:#22d3ee}.glow-purple{background:#8b5cf6}
+ul.content-list{list-style:none;padding:0;margin:0}ul.content-list li{font-size:32px;padding:12px 0;padding-left:32px;position:relative;color:rgba(240,244,255,0.85)}ul.content-list li::before{content:'▸';position:absolute;left:0;color:var(--accent-cyan);font-weight:700}
+.pill{display:inline-block;background:rgba(59,130,246,0.2);border:1px solid rgba(96,165,250,0.3);border-radius:999px;padding:8px 20px;font-size:22px;color:var(--accent-bright);margin:6px 8px 6px 0}
+.meme-frame{background:#1e293b;border-radius:16px;padding:40px;text-align:center;border:2px solid rgba(96,165,250,0.2)}.meme-text-top,.meme-text-bot{font-family:var(--font-display);font-size:40px;color:#fff;text-shadow:2px 2px 4px rgba(0,0,0,0.8)}
+.quiz-option{background:rgba(30,58,138,0.3);border:2px solid rgba(96,165,250,0.2);border-radius:12px;padding:16px 24px;margin-bottom:12px;font-size:28px;color:rgba(240,244,255,0.9)}.quiz-num{font-family:var(--font-display);font-size:24px;color:var(--accent-cyan);margin-right:16px}
+@keyframes pulse{0%,100%{opacity:0.1}50%{opacity:0.25}}
+</style>
+<script>
+(function(){
+const T=["Week 15 Session 1: THE DIGITAL DIVIDE","Learning Objectives","What is the Digital Divide?","Why It's an STS Issue","3 Levels of Digital Divide","GLOBAL DIGITAL DIVIDE","Global Internet Access Stats","The Connectivity Map","Who's Connected, Who's Not?","PHILIPPINE DIGITAL LANDSCAPE","PH Internet Statistics","PH Digital Divide: Urban vs Rural","The COVID Pandemic Exposed It All","Student Struggles During Online Learning","PH Internet Speed Ranking","CAUSES OF THE DIGITAL DIVIDE","Economic Factors","Geographic & Infrastructure Factors","Social & Demographic Factors","Education & Literacy Factors","CONSEQUENCES","Impact on Education","Impact on Employment","Impact on Healthcare & Gov Services","Impact on Democracy & Information","Digital Divide Meme","BRIDGING THE DIVIDE","Government Initiatives","RA 10929: Free Internet in Public Places","Private Sector & NGO Efforts","What Can Be Done: Solutions","Key Takeaways","Group Activity","Quiz (Items 1-5)","Quiz (Items 6-10)","Next Session Preview"];
+const S=["Good morning/afternoon! Today we tackle the Digital Divide — one of the most relevant issues for Filipino students. Ilan sa inyo ang nag-struggle sa internet connection during online class? Exactly. That experience IS the digital divide.","By end of session, you'll define digital divide, identify its causes, analyze PH digital landscape, evaluate its consequences on education/employment, and propose solutions.","The digital divide is the gap between those who have ACCESS to modern information and communication technology and those who DON'T. It's not just about having a phone — it's about meaningful, reliable, affordable access to the internet and digital tools.","It's an STS issue because TECHNOLOGY created this divide. As society increasingly depends on digital tools for education, work, healthcare, and government services, those without access are LEFT BEHIND. Technology that should equalize actually widens inequality.","There are actually 3 levels of digital divide. First level: ACCESS (do you have internet/devices?). Second level: USAGE (do you have the skills to use it effectively?). Third level: OUTCOMES (does your internet use actually improve your life?). Most people only think about Level 1.","Let's zoom out and look at the GLOBAL picture first. The digital divide exists between countries too — not just within them.","Globally, about 5.4 billion people (67%) use the internet as of 2023. That means 2.6 BILLION still don't have access. Most of the unconnected are in Africa, South/Southeast Asia, and rural areas worldwide. Rich countries: 90%+ connected. Poorest countries: under 30%.","Imagine a map. North America, Europe, East Asia — bright and connected. Sub-Saharan Africa, parts of South Asia, Pacific Islands — dark spots with minimal connectivity. The Philippines is somewhere in between: better than many, worse than neighbors like Singapore, Malaysia.","Who's most likely to be disconnected globally? Rural populations, women in developing countries, elderly, people with disabilities, indigenous communities, and the economically poor. The divide follows existing social inequalities.","Now let's zoom into the Philippines. We are a fascinating case study: we're called the 'Social Media Capital of the World' but have some of the WORST internet speeds in Asia. How does that work?","Philippines internet stats: 85 million internet users (73% of population). Average mobile speed: 25 Mbps. Average fixed broadband: 71 Mbps. 96% access via mobile phones. Social media users: 84 million. But these national averages HIDE the divide.","The divide between Metro Manila and provinces is MASSIVE. In NCR, almost everyone has access. In BARMM, Caraga, Eastern Visayas? Internet penetration drops to under 50%. Speed in Manila: 100+ Mbps fiber. Speed in rural areas: 3-5 Mbps on good days. Same country, different realities.","The COVID pandemic forced everything online overnight. Schools, work, government services — all digital. Suddenly the digital divide wasn't just inconvenient, it was CATASTROPHIC. Students without internet couldn't attend class. Workers without digital skills lost jobs.","During online learning: students climbed mountains for signal, used modular learning because no internet, shared one phone among 3 siblings, loaded PHP 10 data promos for a 3-hour class. Teachers printed modules and delivered door-to-door. The divide was visible and painful.","Here's a painful stat: Philippines ranked around 80th-90th globally for internet speed. Behind Vietnam, Indonesia, Thailand. Our ASEAN neighbors invested in fiber infrastructure years ago while we lagged behind. Globe and Smart are catching up but slowly.","What CAUSES the digital divide? It's not one factor — it's a web of interconnected issues. Let's break them down.","ECONOMIC: Internet costs money. A fiber connection costs PHP 1,500-2,500/month. A decent smartphone: PHP 8,000-15,000. For minimum wage earners (PHP 610/day in NCR), these are luxury expenses, not necessities.","GEOGRAPHIC: The Philippines is an archipelago of 7,641 islands. Building cell towers and laying fiber optic cables across mountains and oceans is expensive and difficult. Telcos prioritize profitable urban areas. Remote provinces get left behind.","SOCIAL factors: Age (elderly less likely to use), gender (slight gap in developing countries), disability (inaccessible platforms), language (most content is English, not Filipino/local languages), indigenous communities often excluded.","EDUCATION: Digital literacy is not just knowing how to use Facebook. It means evaluating sources, using productivity tools, protecting privacy, coding, creating content. Many Filipinos can browse social media but can't use Google Sheets or write an email properly.","The digital divide has REAL consequences across every sector of life. It's not just an inconvenience — it determines life outcomes.","Education: Students without internet miss lessons, can't access online resources, can't submit requirements. During pandemic, estimated 3.2 million Filipino students dropped out. The divide creates an education gap that becomes a LIFETIME earnings gap.","Employment: Most job applications are now online. Remote work requires fast internet. Digital skills are required even for basic jobs. Those without access/skills are limited to low-wage, in-person work. The future economy is digital — no access = no future.","Healthcare: Telemedicine requires internet. Government health apps (like contact tracing) need smartphones. Health information is primarily online. Rural areas with no connectivity also have no telehealth access. Double disadvantage.","Democracy: Online news, social media — primary info sources now. Those without access have LESS access to information, can't fact-check, more vulnerable to misinformation. Government services (PhilSys, SSS, Pag-IBIG) going online means unconnected citizens are excluded.","(Meme time!) Filipino students during online class: 'Ma, wag muna po kayong maglaba!' 'Bakit?' 'Nag-buffer po yung teacher ko pag ginagamit yung tubig!' The struggle was real. Internet problems affected literal education outcomes.","How do we BRIDGE the digital divide? It requires action from government, private sector, NGOs, and communities working together.","Government initiatives: Free WiFi in public spaces, DITO Telecommuni (3rd major telco for competition), National Broadband Program, DepEd laptop distribution, DICT connectivity projects in GIDAs (Geographically Isolated and Disadvantaged Areas).","RA 10929 (Free Internet Access in Public Places Act, 2017): Mandates free WiFi in national/local government offices, public hospitals, health centers, public transport terminals, parks, plazas, and public libraries. Implementation is ongoing but slow.","Private sector: Globe and Smart expanding 5G and fiber. Tech companies donating devices. NGOs like World Vision providing connectivity in remote schools. Starlink entering PH market (satellite internet for remote areas). Community WiFi programs in barangays.","What can be done? Multi-pronged approach: invest in infrastructure (fiber to provinces), subsidize access for poor, integrate digital literacy in K-12 curriculum, develop Filipino-language content, create community tech hubs, promote competition among telcos to lower prices.","Takeaways! Digital divide = access + skills + outcomes gap. PH: 73% online but massive urban-rural gap. Caused by economic, geographic, social, educational factors. COVID exposed the crisis. Solutions need government, private sector, and community action together.","Group activity: Map the digital divide in YOUR life. Survey your group: What device do you use? What internet speed? How much do you spend monthly? Any experiences where lack of connectivity held you back? Discuss and propose one solution for your school.","Quiz time! 10 items.","Items 6-10. Think about Philippine context and solutions.","Next session: Cybersecurity & Data Privacy — cybercrime, RA 10175, RA 10173, online safety. Protect yourselves! See you!"];
+const A=[{q:"1. What is the digital divide? (Definition, 2 pts)",a:"The gap between those who have access to modern information and communication technology (internet, devices, digital tools) and those who do not, including differences in skills and outcomes."},{q:"2. What are the 3 levels of digital divide? (3 pts)",a:"1st Level: Access (having internet/devices), 2nd Level: Usage (having skills to use effectively), 3rd Level: Outcomes (whether internet use actually improves quality of life)"},{q:"3. What percentage of Filipinos have internet access? (1 pt)",a:"Approximately 73% of the population (about 85 million users)"},{q:"4. Give 2 causes of the digital divide in the Philippines. (2 pts)",a:"Any 2: Economic factors (cost of internet/devices), Geographic (archipelago, remote areas), Social (age, gender, disability), Educational (lack of digital literacy), Infrastructure (limited fiber/towers in provinces)"},{q:"5. What is RA 10929? (2 pts)",a:"Free Internet Access in Public Places Act (2017) — mandates free WiFi in government offices, public hospitals, transport terminals, parks, and public libraries."},{q:"6. How did the COVID pandemic expose the digital divide in PH education? (3 pts)",a:"Online learning required internet access; students without connectivity missed classes, climbed mountains for signal, shared devices, or relied on printed modules. Estimated 3.2 million students dropped out during the pandemic."},{q:"7. What is the difference between digital access and digital literacy? (2 pts)",a:"Digital access = having internet connection and devices. Digital literacy = having the skills to use technology effectively (evaluating sources, using tools, protecting privacy, creating content)."},{q:"8. Why is the Philippines called 'Social Media Capital of the World' yet has poor internet? (3 pts)",a:"Filipinos spend the most time on social media globally (avg 3+ hours/day) because social media apps are lightweight/zero-rated, but actual broadband infrastructure is underdeveloped — most access is via slow mobile data, not fiber."},{q:"9. Give 2 consequences of the digital divide on employment. (2 pts)",a:"Any 2: Job applications are online (no access = can't apply), remote work requires fast internet, digital skills required for modern jobs, those without access limited to low-wage in-person work."},{q:"10. Name 2 solutions to bridge the digital divide in the Philippines. (2 pts)",a:"Any 2: Invest in infrastructure (fiber to provinces), subsidize access for poor, integrate digital literacy in K-12, develop Filipino-language content, create community tech hubs, promote telco competition, satellite internet (Starlink)."}];
+let sw=null,aw=null,ci=0;const tt=T.length;
+function gSH(){let h='<!DOCTYPE html><html><head><title>Script-W15S1</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Space Grotesk",sans-serif;background:#0f172a;color:#e2e8f0;line-height:1.8;font-size:18px}.header{background:#1e293b;padding:14px 24px;position:sticky;top:0;z-index:100;border-bottom:3px solid #3b82f6}.header-top{display:flex;justify-content:space-between;align-items:center}.header h1{font-size:16px;color:#94a3b8}.sc{background:#3b82f6;color:#fff;padding:5px 14px;border-radius:999px;font-size:14px;font-weight:700}.ct{font-size:20px;font-weight:700;color:#fff;margin-top:8px}.wt{font-size:13px;color:#60a5fa;text-transform:uppercase;letter-spacing:1.5px;font-weight:600}.sb{padding:20px 24px;border-bottom:1px solid rgba(30,58,138,0.3);transition:all 0.15s}.sb.active{background:rgba(59,130,246,0.15);border-left:5px solid #60a5fa;padding-left:19px}.sb.past{opacity:0.3}.sl{color:#60a5fa;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:3px}.st2{color:#e2e8f0;font-weight:600;font-size:17px;margin-bottom:6px}.stxt{color:#94a3b8;font-size:15px;line-height:1.8}</style></head><body><div class="header"><div class="header-top"><h1>📋 TEACHER SCRIPT</h1><div class="sc" id="counter">1/'+tt+'</div></div><div class="wt">WEEK 15 · SESSION 1 · DIGITAL DIVIDE</div><div class="ct" id="curTitle">'+T[0]+'</div></div>';S.forEach(function(s,i){h+='<div class="sb" id="sb-'+i+'"><div class="sl">Slide '+(i+1)+'</div><div class="st2">'+T[i]+'</div><div class="stxt">'+s+'</div></div>';});h+='</body></html>';return h;}
+function gAH(){let h='<!DOCTYPE html><html><head><title>🔑 W15S1</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Space Grotesk",sans-serif;background:#1a0a0a;color:#e2e8f0;line-height:1.7;font-size:17px}.header{background:#7f1d1d;padding:16px 24px;position:sticky;top:0;z-index:100;border-bottom:3px solid #dc2626}.header h1{font-size:20px;color:#fecaca}.item{padding:20px 24px;border-bottom:1px solid rgba(127,29,29,0.4)}.q{font-weight:700;color:#fca5a5;font-size:16px;margin-bottom:8px}.a{color:#86efac;font-size:16px;padding:10px 16px;background:rgba(22,101,52,0.2);border-left:3px solid #4ade80;border-radius:0 8px 8px 0}.w{background:#7f1d1d;color:#fecaca;padding:12px 24px;text-align:center;font-size:14px;font-weight:600}</style></head><body><div class="header"><h1>🔑 ANSWER KEY: W15S1 Digital Divide</h1></div><div class="w">⚠️ DO NOT SHOW TO STUDENTS ⚠️</div>';A.forEach(function(x){h+='<div class="item"><div class="q">'+x.q+'</div><div class="a">'+x.a+'</div></div>';});h+='</body></html>';return h;}
+function sync(idx){if(idx<0||idx>=tt)return;ci=idx;if(!sw||sw.closed)return;try{var d=sw.document;d.getElementById('counter').textContent=(idx+1)+'/'+tt;d.getElementById('curTitle').textContent=T[idx]||'';d.querySelectorAll('.sb').forEach(function(b,i){b.classList.remove('active','past');if(i===idx)b.classList.add('active');else if(i<idx)b.classList.add('past');});var el=d.getElementById('sb-'+idx);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});}catch(e){}}
+function detect(){if(window.slides&&typeof window.slides.currentSlide!=='undefined')return window.slides.currentSlide-1;var all=document.querySelectorAll('.slide');for(var i=0;i<all.length;i++)if(all[i].classList.contains('is-active'))return i;var b=0,bv=-Infinity;for(var j=0;j<all.length;j++){var r=all[j].getBoundingClientRect();var v=Math.min(r.bottom,innerHeight)-Math.max(r.top,0);if(v>bv){bv=v;b=j;}}return b;}
+function ds(){var idx=detect();if(idx!==ci)sync(idx);}
+function init(){document.addEventListener('keydown',function(e){if(e.ctrlKey&&e.shiftKey&&(e.key==='d'||e.key==='D')){e.preventDefault();if(aw&&!aw.closed){aw.close();aw=null;}else{aw=window.open('','ak','width=600,height=700,scrollbars=yes');if(aw){aw.document.write(gAH());aw.document.close();}}return;}if((e.key==='t'||e.key==='T')&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){e.preventDefault();if(!sw||sw.closed){sw=window.open('','ts','width=620,height=750,scrollbars=yes');if(sw){sw.document.write(gSH());sw.document.close();setTimeout(function(){sync(ci);},100);}}else{sw.focus();sync(ci);}return;}if(['ArrowRight','ArrowLeft','ArrowUp','ArrowDown','Space',' ','PageUp','PageDown','Home','End'].indexOf(e.key)!==-1){setTimeout(ds,30);setTimeout(ds,100);}},true);document.addEventListener('click',function(){setTimeout(ds,30);setTimeout(ds,100);},true);document.addEventListener('touchend',function(){setTimeout(ds,30);setTimeout(ds,100);},true);window.addEventListener('hashchange',function(){setTimeout(ds,30);});function ps(){if(!window.slides)return false;['advance','retreat','next','prev','goTo','first','last'].forEach(function(m){if(typeof window.slides[m]==='function'&&!window.slides[m].__p){var o=window.slides[m];window.slides[m]=function(){var r=o.apply(this,arguments);setTimeout(ds,5);setTimeout(ds,50);return r;};window.slides[m].__p=true;}});return true;}if(!ps()){var t=0,iv=setInterval(function(){if(ps()||++t>60)clearInterval(iv);},80);}var obs=new MutationObserver(function(){setTimeout(ds,10);});document.querySelectorAll('.slide').forEach(function(s){obs.observe(s,{attributes:true,attributeFilter:['class']});});setInterval(ds,250);}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+</head>
+<body>
+
+<section class="slide"><div class="glow-orb glow-blue" style="width:600px;height:600px;top:-200px;right:-100px;"></div><div class="glow-orb glow-cyan" style="width:400px;height:400px;bottom:-100px;left:-50px;"></div><span class="section-num reveal d1">15</span><span class="eyebrow reveal d1">Week 15 · Session 1</span><h1 style="font-size:96px;line-height:1.05;margin-bottom:24px;" class="reveal d2">THE DIGITAL<br>DIVIDE</h1><h2 style="font-size:40px;font-weight:400;font-family:var(--font-body);color:var(--accent-bright);margin-bottom:40px;" class="reveal d3">Access · Equity · The Filipino Digital Landscape</h2><p style="font-size:28px;color:rgba(240,244,255,0.6);" class="reveal d4">Science, Technology and Society · GEC Course</p></section>
+
+<section class="slide"><span class="section-num reveal d1">01</span><span class="eyebrow reveal d1">Learning Objectives</span><h2 style="font-size:56px;margin-bottom:40px;" class="reveal d2">What You'll Learn Today</h2><ul class="content-list"><li class="step">Define the digital divide and its 3 levels</li><li class="step">Analyze the Philippine digital landscape</li><li class="step">Identify causes: economic, geographic, social, educational</li><li class="step">Evaluate consequences on education, work, healthcare</li><li class="step">Propose solutions to bridge the divide</li></ul></section>
+
+<section class="slide"><div class="glow-orb glow-purple" style="width:500px;height:500px;top:50%;left:-150px;transform:translateY(-50%);"></div><span class="section-num reveal d1">02</span><span class="eyebrow reveal d1">Definition</span><h2 style="font-size:56px;margin-bottom:32px;" class="reveal d2">What is the Digital Divide?</h2><div class="blue-card reveal d3" style="max-width:1200px;"><p style="font-size:34px;color:#fff;margin:0 0 16px 0;">The <span style="color:var(--accent-cyan);font-weight:700;">gap</span> between those who have access to modern ICT and those who don't — including differences in <span style="color:var(--accent-cyan);font-weight:700;">skills</span> and <span style="color:var(--accent-cyan);font-weight:700;">outcomes</span>.</p><p style="font-size:26px;color:rgba(255,255,255,0.6);margin:0;">Not just "Do you have WiFi?" — it's deeper than that.</p></div></section>
+
+<section class="slide"><span class="section-num reveal d1">02</span><span class="eyebrow reveal d1">Connection to STS</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Why It's an STS Issue</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:28px;color:rgba(240,244,255,0.9);margin:0 0 16px 0;">Technology that should <strong style="color:var(--accent-cyan);">equalize</strong> actually <strong style="color:#f87171;">widens inequality</strong>.</p><p style="font-size:26px;color:rgba(240,244,255,0.8);margin:0 0 10px 0;">• Education moved online → those without internet fall behind</p><p style="font-size:26px;color:rgba(240,244,255,0.8);margin:0 0 10px 0;">• Jobs require digital skills → no access = no opportunity</p><p style="font-size:26px;color:rgba(240,244,255,0.8);margin:0;">• Government services go digital → unconnected citizens excluded</p></div></section>
+
+<section class="slide"><span class="section-num reveal d1">02</span><span class="eyebrow reveal d1">Framework</span><h2 style="font-size:48px;margin-bottom:32px;" class="reveal d2">3 Levels of Digital Divide</h2><div class="grid-3"><div class="blue-card step" style="padding:36px;text-align:center;"><p style="font-size:44px;margin:0 0 12px 0;">📡</p><h3 style="font-size:26px;color:#fff;margin-bottom:8px;">Level 1: ACCESS</h3><p style="font-size:20px;color:rgba(255,255,255,0.8);margin:0;">Do you have internet and devices?</p></div><div class="blue-card step" style="padding:36px;text-align:center;"><p style="font-size:44px;margin:0 0 12px 0;">🧠</p><h3 style="font-size:26px;color:#fff;margin-bottom:8px;">Level 2: USAGE</h3><p style="font-size:20px;color:rgba(255,255,255,0.8);margin:0;">Do you have skills to use it effectively?</p></div><div class="blue-card step" style="padding:36px;text-align:center;"><p style="font-size:44px;margin:0 0 12px 0;">📈</p><h3 style="font-size:26px;color:#fff;margin-bottom:8px;">Level 3: OUTCOMES</h3><p style="font-size:20px;color:rgba(255,255,255,0.8);margin:0;">Does it actually improve your life?</p></div></div></section>
+
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;"><div class="glow-orb glow-blue" style="width:800px;height:800px;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 5s ease-in-out infinite;"></div><span class="eyebrow reveal d1">Part 1</span><h1 style="font-size:80px;line-height:1.05;" class="reveal d2">GLOBAL<br>DIGITAL DIVIDE</h1><p style="font-size:28px;color:var(--accent-bright);margin-top:24px;" class="reveal d3">2.6 Billion People Still Offline</p></section>
+
+<section class="slide"><span class="section-num reveal d1">03</span><span class="eyebrow reveal d1">Global Stats</span><h2 style="font-size:48px;margin-bottom:36px;" class="reveal d2">Global Internet Access (2023)</h2><div class="grid-3 reveal d3"><div style="text-align:center;"><p class="stat-big step" style="font-size:90px;">5.4B</p><p class="stat-label">people online (67%)</p></div><div style="text-align:center;"><p class="stat-big step" style="font-size:90px;color:#f87171;">2.6B</p><p class="stat-label">people still offline (33%)</p></div><div style="text-align:center;"><p class="stat-big step" style="font-size:90px;">90%+</p><p class="stat-label">connected in rich countries</p></div></div></section>
+
+<section class="slide"><span class="section-num reveal d1">03</span><span class="eyebrow reveal d1">Visualization</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">The Connectivity Map</h2><div class="dark-card reveal d3" style="max-width:1200px;"><div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:16px;"><div style="flex:1;background:rgba(74,222,128,0.2);border-radius:8px;padding:16px;text-align:center;"><p style="font-size:22px;color:#4ade80;margin:0;font-weight:600;">HIGH (90%+)</p><p style="font-size:20px;color:rgba(240,244,255,0.7);margin:4px 0 0 0;">N. America, Europe, E. Asia</p></div><div style="flex:1;background:rgba(251,191,36,0.2);border-radius:8px;padding:16px;text-align:center;"><p style="font-size:22px;color:#fbbf24;margin:0;font-weight:600;">MEDIUM (50-80%)</p><p style="font-size:20px;color:rgba(240,244,255,0.7);margin:4px 0 0 0;">SE Asia, Latin America, PH</p></div><div style="flex:1;background:rgba(248,113,113,0.2);border-radius:8px;padding:16px;text-align:center;"><p style="font-size:22px;color:#f87171;margin:0;font-weight:600;">LOW (&lt;30%)</p><p style="font-size:20px;color:rgba(240,244,255,0.7);margin:4px 0 0 0;">Sub-Saharan Africa, parts of S. Asia</p></div></div></div></section>
+
+<section class="slide"><span class="section-num reveal d1">03</span><span class="eyebrow reveal d1">Who's Excluded?</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Who's Connected, Who's Not?</h2><div class="grid-2 reveal d3"><div class="dark-card"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:12px;">Most Disconnected:</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Rural populations worldwide</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Women in developing countries</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Elderly & persons with disabilities</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">• Indigenous communities</p></div><div class="dark-card"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:12px;">Pattern:</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">The digital divide <strong>follows existing social inequalities</strong>. If you're already marginalized by poverty, geography, gender, or age — you're most likely also digitally excluded.</p></div></div></section>
+
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;"><div class="glow-orb glow-cyan" style="width:800px;height:800px;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 4s ease-in-out infinite;"></div><span class="eyebrow reveal d1">Part 2</span><h1 style="font-size:72px;line-height:1.05;" class="reveal d2">PHILIPPINE<br>DIGITAL LANDSCAPE</h1><p style="font-size:28px;color:var(--accent-bright);margin-top:24px;" class="reveal d3">"Social Media Capital" with Worst Internet 🇵🇭</p></section>
+
+<section class="slide"><span class="section-num reveal d1">04</span><span class="eyebrow reveal d1">PH Numbers</span><h2 style="font-size:48px;margin-bottom:32px;" class="reveal d2">PH Internet Statistics</h2><div class="grid-2 reveal d3"><div style="text-align:center;"><p class="stat-big step" style="font-size:80px;">85M</p><p class="stat-label">internet users (73% of pop)</p></div><div style="text-align:center;"><p class="stat-big step" style="font-size:80px;">96%</p><p class="stat-label">access via mobile phone</p></div><div style="text-align:center;"><p class="stat-big step" style="font-size:80px;">84M</p><p class="stat-label">social media users</p></div><div style="text-align:center;"><p class="stat-big step" style="font-size:80px;">3.5hr</p><p class="stat-label">avg daily social media time</p></div></div></section>
+
+<section class="slide"><span class="section-num reveal d1">04</span><span class="eyebrow reveal d1">The Gap 🇵🇭</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">PH Digital Divide: Urban vs Rural</h2><div class="grid-2 reveal d3"><div class="dark-card" style="border-color:rgba(74,222,128,0.3);"><h3 style="font-size:24px;color:#4ade80;margin-bottom:12px;">🏙️ Metro Manila / Urban</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• 90%+ internet access</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Fiber speeds: 100+ Mbps</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">• Multiple ISP options</p></div><div class="dark-card" style="border-color:rgba(248,113,113,0.3);"><h3 style="font-size:24px;color:#f87171;margin-bottom:12px;">🏔️ Rural / Provincial</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Under 50% in BARMM, Caraga</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Mobile only: 3-5 Mbps on good days</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">• Often 1 telco (no competition)</p></div></div><p style="font-size:24px;color:#fbbf24;text-align:center;margin-top:20px;" class="reveal d4">Same country. Completely different digital realities.</p></section>
+
+<section class="slide"><span class="section-num reveal d1">04</span><span class="eyebrow reveal d1">COVID Impact</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">The Pandemic Exposed It All</h2><div class="blue-card reveal d3" style="max-width:1200px;"><p style="font-size:30px;color:#fff;margin:0 0 16px 0;">COVID forced everything online overnight:</p><p style="font-size:26px;color:rgba(255,255,255,0.9);margin:0 0 10px 0;">📚 Schools → Online classes (no internet = no education)</p><p style="font-size:26px;color:rgba(255,255,255,0.9);margin:0 0 10px 0;">💼 Work → WFH (no connectivity = no income)</p><p style="font-size:26px;color:rgba(255,255,255,0.9);margin:0 0 10px 0;">🏥 Health → Telemedicine (no access = no healthcare)</p><p style="font-size:26px;color:rgba(255,255,255,0.9);margin:0;">🏛️ Government → Online services (no device = excluded)</p></div></section>
+
+<section class="slide"><span class="section-num reveal d1">04</span><span class="eyebrow reveal d1">Student Reality</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Student Struggles During Online Learning</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">🏔️ Students <strong style="color:#f87171;">climbed mountains</strong> just to get signal</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">📱 <strong style="color:#fbbf24;">3 siblings shared 1 phone</strong> for their classes</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">💰 Used PHP 10 data promos for 3-hour lectures</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">📄 Teachers delivered <strong style="color:var(--accent-cyan);">printed modules door-to-door</strong></p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0;">📊 Result: <strong style="color:#f87171;">3.2 million students dropped out</strong></p></div></section>
+
+<section class="slide"><span class="section-num reveal d1">04</span><span class="eyebrow reveal d1">Speed</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">PH Internet Speed Ranking</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:28px;color:rgba(240,244,255,0.9);margin:0 0 16px 0;">Philippines ranks <strong style="color:#f87171;">~80th-90th globally</strong> for internet speed</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0 0 10px 0;">Behind: 🇻🇳 Vietnam · 🇮🇩 Indonesia · 🇹🇭 Thailand · 🇲🇾 Malaysia</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0 0 10px 0;">ASEAN neighbors invested in fiber infrastructure YEARS ago</p><p style="font-size:24px;color:rgba(240,244,255,0.8);margin:0;">Globe/Smart catching up with fiber rollout but still far behind</p></div></section>
+
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;"><div class="glow-orb glow-purple" style="width:800px;height:800px;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 4s ease-in-out infinite;"></div><span class="eyebrow reveal d1">Part 3</span><h1 style="font-size:72px;line-height:1.05;" class="reveal d2">CAUSES OF THE<br>DIGITAL DIVIDE</h1><p style="font-size:28px;color:var(--accent-bright);margin-top:24px;" class="reveal d3">It's Not One Factor — It's a Web</p></section>
+
+<section class="slide"><span class="section-num reveal d1">05</span><span class="eyebrow reveal d1">Cause 1</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Economic Factors 💰</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:28px;color:rgba(240,244,255,0.9);margin:0 0 16px 0;">Internet is a <strong style="color:#f87171;">luxury expense</strong> for many Filipinos:</p><p style="font-size:26px;color:rgba(240,244,255,0.8);margin:0 0 10px 0;">• Fiber connection: ₱1,500-2,500/month</p><p style="font-size:26px;color:rgba(240,244,255,0.8);margin:0 0 10px 0;">• Decent smartphone: ₱8,000-15,000</p><p style="font-size:26px;color:rgba(240,244,255,0.8);margin:0 0 10px 0;">• Laptop: ₱20,000-40,000</p><p style="font-size:26px;color:rgba(240,244,255,0.8);margin:0;">• Minimum wage (NCR): ₱610/day = ₱15,860/month</p></div></section>
+
+<section class="slide"><span class="section-num reveal d1">05</span><span class="eyebrow reveal d1">Cause 2</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Geographic & Infrastructure Factors 🏝️</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">🏝️ <strong style="color:var(--accent-cyan);">7,641 islands</strong> — laying fiber optic cables across water is expensive</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">⛰️ Mountainous terrain makes cell towers difficult to build</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">💼 Telcos prioritize profitable <strong>urban</strong> areas first</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0;">🌀 Typhoons regularly destroy infrastructure in provinces</p></div></section>
+
+<section class="slide"><span class="section-num reveal d1">05</span><span class="eyebrow reveal d1">Cause 3</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Social & Demographic Factors</h2><div class="grid-2 reveal d3"><div class="dark-card"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:10px;">Who's most excluded:</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Elderly (less tech-savvy)</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Women in rural areas</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Persons with disabilities</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">• Indigenous peoples</p></div><div class="dark-card"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:10px;">Why:</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Content mostly in English</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Platforms not accessible (PWD)</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">• Cultural barriers to adoption</p></div></div></section>
+
+<section class="slide"><span class="section-num reveal d1">05</span><span class="eyebrow reveal d1">Cause 4</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Education & Literacy Factors 📚</h2><div class="blue-card reveal d3" style="max-width:1200px;"><p style="font-size:28px;color:#fff;margin:0 0 16px 0;"><strong>Digital literacy ≠ knowing how to use Facebook</strong></p><p style="font-size:26px;color:rgba(255,255,255,0.9);margin:0 0 10px 0;">Real digital literacy means:</p><div style="display:flex;gap:12px;flex-wrap:wrap;"><span class="pill">Evaluating sources</span><span class="pill">Using productivity tools</span><span class="pill">Protecting privacy</span><span class="pill">Creating content</span><span class="pill">Basic coding</span><span class="pill">Online collaboration</span></div></div></section>
+
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;"><div class="glow-orb glow-blue" style="width:800px;height:800px;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 4s ease-in-out infinite;"></div><span class="eyebrow reveal d1">Part 4</span><h1 style="font-size:80px;line-height:1.05;" class="reveal d2">CONSEQUENCES</h1><p style="font-size:28px;color:#f87171;margin-top:24px;" class="reveal d3">The Digital Divide Determines Life Outcomes</p></section>
+
+<section class="slide"><span class="section-num reveal d1">06</span><span class="eyebrow reveal d1">Education</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Impact on Education</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">📚 Can't access online learning platforms, resources, libraries</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">📝 Can't submit digital requirements on time</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">📊 <strong style="color:#f87171;">3.2 million PH students dropped out during pandemic</strong></p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0;">💰 Education gap → lifetime earnings gap (cycle of poverty)</p></div></section>
+
+<section class="slide"><span class="section-num reveal d1">06</span><span class="eyebrow reveal d1">Employment</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Impact on Employment</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">💼 Most job applications now online (no access = can't apply)</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">🏠 Remote work requires fast internet (WFH boom left many behind)</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">🖥️ Digital skills required even for basic jobs now</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0;">⚠️ No access/skills = limited to low-wage, in-person work only</p></div></section>
+
+<section class="slide"><span class="section-num reveal d1">06</span><span class="eyebrow reveal d1">Health & Gov</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Impact on Healthcare & Gov Services</h2><div class="grid-2 reveal d3"><div class="dark-card"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:10px;">🏥 Healthcare</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Telemedicine needs internet</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Health apps need smartphones</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">• Health info primarily online now</p></div><div class="dark-card"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:10px;">🏛️ Government</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• PhilSys, SSS, Pag-IBIG → online</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• E-governance excludes offline citizens</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">• Digital IDs require connectivity</p></div></div></section>
+
+<section class="slide"><span class="section-num reveal d1">06</span><span class="eyebrow reveal d1">Democracy</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Impact on Democracy & Information</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">📰 News is primarily online now — less access = less informed</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">🤔 Can't fact-check → more vulnerable to misinformation/fake news</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 14px 0;">🗳️ Digital civic participation limited (online petitions, consultations)</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0;">⚠️ Information asymmetry = power asymmetry</p></div></section>
+
+<section class="slide" style="justify-content:center;align-items:center;"><div class="meme-frame reveal d2" style="max-width:900px;padding:60px;"><p class="meme-text-top" style="margin:0 0 30px 0;">STUDENTS DURING ONLINE CLASS:</p><p style="font-size:80px;margin:20px 0;">📱💀📶</p><p class="meme-text-bot" style="margin:30px 0 0 0;">"MA, WAG MUNA PO KAYONG MAG-LABA!<br>NAG-BUFFER PO YUNG TEACHER KO!"</p></div><p style="font-size:24px;color:rgba(240,244,255,0.5);text-align:center;margin-top:20px;" class="reveal d3">The struggle was REAL. Internet problems affected actual life outcomes. 📉</p></section>
+
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;"><div class="glow-orb glow-cyan" style="width:800px;height:800px;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 4s ease-in-out infinite;"></div><span class="eyebrow reveal d1">Part 5</span><h1 style="font-size:72px;line-height:1.05;" class="reveal d2">BRIDGING<br>THE DIVIDE</h1><p style="font-size:28px;color:var(--accent-bright);margin-top:24px;" class="reveal d3">Solutions From All Sectors</p></section>
+
+<section class="slide"><span class="section-num reveal d1">07</span><span class="eyebrow reveal d1">Government</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Government Initiatives 🇵🇭</h2><div class="dark-card reveal d3" style="max-width:1200px;"><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 12px 0;">📡 <strong style="color:var(--accent-cyan);">Free WiFi</strong> in public spaces (RA 10929)</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 12px 0;">📱 <strong style="color:var(--accent-cyan);">DITO Telecommunity</strong> — 3rd major telco (more competition)</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 12px 0;">🌐 <strong style="color:var(--accent-cyan);">National Broadband Program</strong> — fiber backbone to provinces</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0 0 12px 0;">💻 <strong style="color:var(--accent-cyan);">DepEd laptop distribution</strong> for teachers and students</p><p style="font-size:26px;color:rgba(240,244,255,0.9);margin:0;">🏝️ <strong style="color:var(--accent-cyan);">DICT</strong> connectivity projects in GIDAs</p></div></section>
+
+<section class="slide"><span class="section-num reveal d1">07</span><span class="eyebrow reveal d1">Key Law</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">RA 10929: Free Internet in Public Places</h2><div class="blue-card reveal d3" style="max-width:1200px;"><p style="font-size:28px;color:#fff;margin:0 0 16px 0;">Enacted: <strong>2017</strong> — Free Internet Access in Public Places Act</p><p style="font-size:24px;color:rgba(255,255,255,0.9);margin:0 0 10px 0;">Mandates free WiFi in:</p><div style="display:flex;gap:12px;flex-wrap:wrap;"><span class="pill">Gov't Offices</span><span class="pill">Public Hospitals</span><span class="pill">Health Centers</span><span class="pill">Transport Terminals</span><span class="pill">Parks & Plazas</span><span class="pill">Public Libraries</span></div><p style="font-size:22px;color:rgba(255,255,255,0.6);margin-top:12px;margin-bottom:0;">Implementation: Ongoing but slow. Many areas still not covered.</p></div></section>
+
+<section class="slide"><span class="section-num reveal d1">07</span><span class="eyebrow reveal d1">Private & NGO</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Private Sector & NGO Efforts</h2><div class="grid-2 reveal d3"><div class="dark-card"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:10px;">📡 Telcos</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Globe/Smart expanding 5G & fiber</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Starlink entering PH (satellite)</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">• Community WiFi via barangays</p></div><div class="dark-card"><h3 style="font-size:24px;color:var(--accent-cyan);margin-bottom:10px;">🤝 NGOs</h3><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• World Vision: school connectivity</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0 0 6px 0;">• Tech companies donating devices</p><p style="font-size:22px;color:rgba(240,244,255,0.8);margin:0;">• Digital literacy training programs</p></div></div></section>
+
+<section class="slide"><span class="section-num reveal d1">07</span><span class="eyebrow reveal d1">Solutions</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">What Can Be Done: Solutions</h2><ul class="content-list" style="max-width:1100px;"><li class="step" style="font-size:28px;">Invest in fiber infrastructure to provinces (not just NCR)</li><li class="step" style="font-size:28px;">Subsidize internet/devices for low-income families</li><li class="step" style="font-size:28px;">Integrate digital literacy into K-12 curriculum</li><li class="step" style="font-size:28px;">Develop Filipino-language digital content</li><li class="step" style="font-size:28px;">Create community tech hubs (barangay digital centers)</li><li class="step" style="font-size:28px;">Promote telco competition to drive prices down</li></ul></section>
+
+<section class="slide"><div class="glow-orb glow-blue" style="width:600px;height:600px;bottom:-200px;left:-100px;"></div><span class="section-num reveal d1">08</span><span class="eyebrow reveal d1">Summary</span><h2 style="font-size:56px;margin-bottom:36px;" class="reveal d2">Key Takeaways 🔑</h2><ul class="content-list" style="max-width:1200px;"><li class="step" style="font-size:28px;">Digital divide = access + skills + outcomes gap</li><li class="step" style="font-size:28px;">PH: 73% online but massive urban-rural inequality</li><li class="step" style="font-size:28px;">Causes: economic, geographic, social, educational</li><li class="step" style="font-size:28px;">COVID exposed the crisis (3.2M students dropped out)</li><li class="step" style="font-size:28px;">RA 10929 mandates free public WiFi (slow implementation)</li><li class="step" style="font-size:28px;">Solutions need government + private + community action</li></ul></section>
+
+<section class="slide"><span class="section-num reveal d1">09</span><span class="eyebrow reveal d1">Activity</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Group Activity: Map YOUR Digital Divide 📊</h2><div class="blue-card reveal d3" style="max-width:1200px;"><p style="font-size:24px;color:#fff;margin:0 0 16px 0;font-weight:600;">Survey your group and discuss:</p><p style="font-size:24px;color:rgba(255,255,255,0.9);margin:0 0 10px 0;">1️⃣ What device do you primarily use? (Phone/laptop/tablet?)</p><p style="font-size:24px;color:rgba(255,255,255,0.9);margin:0 0 10px 0;">2️⃣ What's your internet speed & monthly cost?</p><p style="font-size:24px;color:rgba(255,255,255,0.9);margin:0 0 10px 0;">3️⃣ Any experiences where lack of connectivity held you back?</p><p style="font-size:24px;color:rgba(255,255,255,0.9);margin:0;">4️⃣ Propose ONE specific solution for your school's connectivity.</p></div></section>
+
+<section class="slide"><span class="section-num reveal d1">10</span><span class="eyebrow reveal d1">📝 Short Quiz</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Quiz Time! (Items 1-5)</h2><div style="max-width:1200px;"><div class="quiz-option step"><span class="quiz-num">1.</span> What is the digital divide? (2 pts)</div><div class="quiz-option step"><span class="quiz-num">2.</span> What are the 3 levels of digital divide? (3 pts)</div><div class="quiz-option step"><span class="quiz-num">3.</span> What % of Filipinos have internet access? (1 pt)</div><div class="quiz-option step"><span class="quiz-num">4.</span> Give 2 causes of digital divide in PH. (2 pts)</div><div class="quiz-option step"><span class="quiz-num">5.</span> What is RA 10929? (2 pts)</div></div></section>
+
+<section class="slide"><span class="section-num reveal d1">10</span><span class="eyebrow reveal d1">📝 Short Quiz</span><h2 style="font-size:48px;margin-bottom:28px;" class="reveal d2">Quiz (Items 6-10)</h2><div style="max-width:1200px;"><div class="quiz-option step"><span class="quiz-num">6.</span> How did COVID expose the digital divide in PH education? (3 pts)</div><div class="quiz-option step"><span class="quiz-num">7.</span> Difference between digital access and digital literacy? (2 pts)</div><div class="quiz-option step"><span class="quiz-num">8.</span> Why is PH called 'Social Media Capital' yet has poor internet? (3 pts)</div><div class="quiz-option step"><span class="quiz-num">9.</span> Give 2 consequences of digital divide on employment. (2 pts)</div><div class="quiz-option step"><span class="quiz-num">10.</span> Name 2 solutions to bridge the digital divide in PH. (2 pts)</div></div><p style="font-size:24px;color:var(--accent-cyan);margin-top:20px;" class="reveal d3">Total: 22 points · Time: 10 minutes ⏱️</p></section>
+
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;"><div class="glow-orb glow-purple" style="width:600px;height:600px;top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 5s ease-in-out infinite;"></div><span class="eyebrow reveal d1">Coming Up</span><h2 style="font-size:64px;margin-bottom:24px;" class="reveal d2">Next Session:</h2><h1 style="font-size:68px;color:var(--accent-bright);" class="reveal d3">Cybersecurity &<br>Data Privacy</h1><p style="font-size:28px;color:rgba(240,244,255,0.6);margin-top:32px;" class="reveal d4">Cybercrime · RA 10175 · RA 10173 · Online Safety</p></section>
+
+</body>
+</html>

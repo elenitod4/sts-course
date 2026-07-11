@@ -1,0 +1,2069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- skill:chassis -->
+<style>
+/* =====================================================
+   PRESENTATION CHASSIS — style-invariant base styles
+   Fixed 1920×1080 canvas scaled to fit any viewport.
+   Customize colors, fonts, and chrome via :root tokens.
+   ===================================================== */
+
+/* ---------- Universal reset ---------- */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ---------- Theme tokens (override in your deck's CSS) ---------- */
+:root {
+    color-scheme: light;
+
+    --background:      #ffffff;
+    --foreground:      #111111;
+    --card:            #f5f5f5;
+    --card-foreground: var(--foreground);
+    --accent:          #c94a3d;
+    --accent-foreground: #ffffff;
+
+    --muted-foreground: color-mix(in srgb, var(--foreground) 55%, transparent);
+    --border:           color-mix(in srgb, var(--foreground) 12%, transparent);
+
+    --font-display: Georgia, serif;
+    --font-body: -apple-system, system-ui, sans-serif;
+    --font-mono: ui-monospace, monospace;
+
+    /* Reveal animation */
+    --reveal-duration: 0.8s;
+    --reveal-ease:     cubic-bezier(0.16, 1, 0.3, 1);
+    --reveal-distance: 28px;
+
+    /* Chrome (nav dots, keyboard hint) */
+    --nav-dot-size: 9px;
+    --nav-dot-radius: 50%;
+    --nav-dot-color: var(--foreground);
+    --nav-dot-active-color: var(--accent);
+    --nav-dot-opacity: 0.4;
+}
+
+/* ---------- Viewport lock + scroll snap ---------- */
+html, body { height: 100%; overflow-x: hidden; }
+html {
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+}
+
+html, body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+/* ---------- Type scale ----------
+   Fixed px sizes on a 1920×1080 canvas. The canvas is scaled to fit
+   any viewport via transform, so these sizes are absolute within the
+   design surface — no responsive units needed. */
+body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body);
+    font-size: 36px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1 { font-size: 120px; line-height: 1.05; letter-spacing: -0.02em; }
+h2 { font-size: 64px; line-height: 1.1; letter-spacing: -0.01em; }
+h3 { font-size: 44px; line-height: 1.2; }
+.eyebrow {
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1.3;
+}
+
+ul, ol { padding-left: 48px; display: flex; flex-direction: column; gap: 24px; }
+li::marker { color: var(--accent); }
+
+/* ---------- Slide structure ----------
+   .slide is the authored 1920×1080 artboard.
+   The chassis wraps it in viewport + scale layers at runtime. */
+.slide-viewport {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: block;
+    position: relative;
+    background: var(--background);
+    isolation: isolate;
+    z-index: 1;
+}
+
+.slide-scale {
+    width: 1920px;
+    height: 1080px;
+    transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+    transform-origin: center center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+}
+
+.slide {
+    width: 1920px;
+    height: 1080px;
+    padding: 80px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 60px;
+    position: relative;
+    background: transparent;
+}
+
+
+/* ---------- Image defaults ---------- */
+img, .image-container {
+    max-width: 100%;
+    max-height: 540px;
+    object-fit: contain;
+}
+
+/* ---------- Reveal primitives ----------
+   Driven by chassis.js via the Web Animations API, not CSS transitions.
+   Put .reveal* or .step on ANY element — author CSS on the same element
+   (opacity, transform, transition, filter) never conflicts, because
+   WAAPI animations live in the animation cascade origin and win over
+   normal author declarations. The .dN stagger classes below still apply
+   to theme-authored CSS animations via animation-delay.
+
+   Variants: .reveal (fade + up), .reveal-left, .reveal-right,
+   .reveal-scale, .reveal-blur. .step stays hidden until the user
+   advances forward. Don't combine .step with .reveal* on the same
+   element. */
+
+/* FOUC guard: hide reveals until chassis.js marks the document ready. */
+:root:not(.reveals-ready) .reveal,
+:root:not(.reveals-ready) .reveal-left,
+:root:not(.reveals-ready) .reveal-right,
+:root:not(.reveals-ready) .reveal-scale,
+:root:not(.reveals-ready) .reveal-blur,
+:root:not(.reveals-ready) .step {
+    opacity: 0;
+}
+:root:not(.reveals-ready) .reveal-blur { filter: blur(10px); }
+
+/* ---------- Stagger delays (.d1 … .d8) ---------- */
+.slide.visible .d1 { transition-delay: 0.10s; animation-delay: 0.10s; }
+.slide.visible .d2 { transition-delay: 0.25s; animation-delay: 0.25s; }
+.slide.visible .d3 { transition-delay: 0.40s; animation-delay: 0.40s; }
+.slide.visible .d4 { transition-delay: 0.55s; animation-delay: 0.55s; }
+.slide.visible .d5 { transition-delay: 0.70s; animation-delay: 0.70s; }
+.slide.visible .d6 { transition-delay: 0.85s; animation-delay: 0.85s; }
+.slide.visible .d7 { transition-delay: 1.00s; animation-delay: 1.00s; }
+.slide.visible .d8 { transition-delay: 1.15s; animation-delay: 1.15s; }
+
+/* ---------- Nav dots ----------
+   Default: right-center (vertical stack on right edge).
+   Override with <body data-nav="bottom | top-right | hidden">. */
+.nav-dots {
+    position: fixed;
+    right: clamp(0.6rem, 1.5vw, 1.4rem);
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.5rem, 1vh, 0.8rem);
+    z-index: 50;
+}
+
+body[data-nav="bottom"] .nav-dots {
+    right: auto;
+    top: auto;
+    bottom: clamp(1rem, 2.5vh, 2rem);
+    left: 50%;
+    transform: translateX(-50%);
+    flex-direction: row;
+}
+
+body[data-nav="top-right"] .nav-dots {
+    right: clamp(1rem, 2.5vw, 2rem);
+    top: clamp(1rem, 2.5vh, 2rem);
+    transform: none;
+    flex-direction: row;
+}
+
+body[data-nav="hidden"] .nav-dots { display: none; }
+
+body[data-nav="bottom"] .keyboard-hint {
+    left: clamp(1rem, 2vw, 1.5rem);
+    transform: none;
+}
+
+.nav-dots button {
+    width: var(--nav-dot-size);
+    height: var(--nav-dot-size);
+    border-radius: var(--nav-dot-radius);
+    border: 1.5px solid var(--nav-dot-color);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.3s ease;
+    opacity: var(--nav-dot-opacity);
+}
+.nav-dots button:hover { opacity: 0.85; transform: scale(1.15); }
+.nav-dots button:focus-visible {
+    outline: 2px solid var(--nav-dot-active-color);
+    outline-offset: 3px;
+    opacity: 1;
+}
+.nav-dots button.active {
+    background: var(--nav-dot-active-color);
+    border-color: var(--nav-dot-active-color);
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+/* ---------- Keyboard hint ---------- */
+.keyboard-hint {
+    position: fixed;
+    bottom: clamp(0.6rem, 1.2vh, 1rem);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted-foreground);
+    z-index: 50;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.keyboard-hint kbd {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.9em;
+    padding: 0.05em 0.4em;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--background);
+    margin: 0 0.15em;
+}
+
+/* ---------- Credit line ---------- */
+.chassis-credit {
+    position: fixed;
+    bottom: clamp(0.6rem, 1.2vh, 1rem);
+    left: clamp(1rem, 2vw, 1.5rem);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted-foreground);
+    letter-spacing: 0.02em;
+    z-index: 50;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.chassis-credit .chassis-credit-emoji {
+    font-style: normal;
+    margin: 0 0.15em;
+}
+
+body[data-nav="bottom"] .chassis-credit {
+    left: auto;
+    right: clamp(1rem, 2vw, 1.5rem);
+}
+
+/* ---------- Custom cursor ---------- */
+.chassis-cursor {
+    position: fixed;
+    top: 0; left: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: var(--accent);
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    will-change: transform;
+}
+.chassis-cursor.visible { opacity: 1; }
+body.artifact-editor-editing .chassis-cursor { display: none; }
+
+@media (hover: none) {
+    .chassis-cursor { display: none; }
+}
+
+body.chassis-cursor-active:not(.artifact-editor-editing),
+body.chassis-cursor-active:not(.artifact-editor-editing) * { cursor: none; }
+
+/* ---------- Opt-outs ---------- */
+body[data-no-chrome] .nav-dots,
+body[data-no-chrome] .keyboard-hint,
+body[data-no-chrome] .chassis-credit,
+body[data-no-chrome] .chassis-cursor,
+body[data-no-chrome] .artifact-editor-toggle { display: none; }
+
+:fullscreen .keyboard-hint,
+:fullscreen .chassis-credit,
+:fullscreen .artifact-editor-toggle { display: none; }
+
+@media (hover: none) {
+    .keyboard-hint,
+    .chassis-credit { display: none; }
+}
+
+@media (max-width: 900px), (max-height: 560px) {
+    .nav-dots,
+    .keyboard-hint,
+    .chassis-credit,
+    .chassis-cursor { display: none; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.2s !important;
+    }
+    html { scroll-behavior: auto; }
+}
+
+/* ---------- Print (PDF export) ---------- */
+@media print {
+    .nav-dots, .keyboard-hint, .chassis-credit, .chassis-cursor { display: none !important; }
+    html, body { height: auto; overflow: visible; }
+    html { scroll-snap-type: none; }
+    .slide-viewport {
+        page-break-after: always;
+        break-after: page;
+        height: 100vh;
+    }
+    .slide-scale {
+        position: static !important;
+        transform: none !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+    .slide {
+        width: 100% !important;
+        height: auto !important;
+    }
+}
+
+</style>
+<script>
+/* =====================================================
+   PRESENTATION CHASSIS — slide controller
+   Auto-initializes on DOMContentLoaded.
+   Exposes window.slides for programmatic control.
+   ===================================================== */
+(function () {
+    'use strict';
+
+    const REVEAL_SELECTOR = '.reveal, .reveal-left, .reveal-right, .reveal-scale, .reveal-blur';
+    const STEP_SELECTOR = '.step';
+    const ALL_REVEAL_SELECTOR = REVEAL_SELECTOR + ', ' + STEP_SELECTOR;
+    const VIEWPORT_CLASS = 'slide-viewport';
+    const SCALE_CLASS = 'slide-scale';
+
+    function _detectLang() {
+        const param = new URLSearchParams(location.search).get('lang');
+        return (param || navigator.language || 'en').slice(0, 2).toLowerCase();
+    }
+
+    class SlidePresentation {
+        constructor() {
+            this.slides = Array.from(document.querySelectorAll('.slide'));
+            if (this.slides.length === 0) return;
+
+            // Ensure every slide has an id so hashes + anchor links work.
+            // Author-defined ids are preserved; the rest get slide-N (1-indexed).
+            this.slides.forEach((slide, idx) => {
+                if (!slide.id) slide.id = `slide-${idx + 1}`;
+            });
+            this.viewports = this._setupViewports();
+            this.scales = this.viewports.map((viewport) => viewport.querySelector(`.${SCALE_CLASS}`));
+
+            // Hide every reveal element BEFORE lifting the CSS FOUC guard.
+            // After this, .reveals-ready is on <html>, so CSS no longer hides
+            // reveals — inline styles keep them hidden until JS animates them.
+            this._setupReveals();
+
+            this.navDotsContainer = this._ensureNavDots();
+            this.keyboardHint = this._ensureKeyboardHint();
+            this.credit = this._ensureCredit();
+
+            this._setupCanvasScale();
+            this._setupIntersectionObserver();
+            this._setupKeyboardNav();
+            this._setupWheelNav();
+            this._setupTouchNav();
+            this._setupViewportSync();
+            this._buildNavDots();
+            this._setupHashNav();
+            this._setupCursor();
+            this._setupPrintSettling();
+
+            // If URL has a matching hash, start there; otherwise start at slide 0.
+            const initial = this._slideIndexFromHash(location.hash);
+            this.currentSlide = initial >= 0 ? initial : 0;
+            if (this.currentSlide !== 0) {
+                this._scrollToSlide(this.currentSlide, 'auto');
+            }
+            // Reveal initial slide immediately (observer may miss it on load).
+            const first = this.slides[this.currentSlide];
+            first.classList.add('visible');
+            this._playSlideReveals(first);
+            this._updateNavDots();
+        }
+
+        /* ---------- Viewport scaffolding ----------
+           Authors write .slide as the 1920×1080 artboard. The chassis wraps
+           that authored section in viewport and scale layers. */
+        _setupViewports() {
+            return this.slides.map((slide) => {
+                const existingScale = slide.parentElement?.classList.contains(SCALE_CLASS)
+                    ? slide.parentElement
+                    : null;
+                const existingViewport = existingScale?.parentElement?.classList.contains(VIEWPORT_CLASS)
+                    ? existingScale.parentElement
+                    : null;
+                if (existingViewport) {
+                    this._syncViewportBackground(slide, existingViewport);
+                    return existingViewport;
+                }
+
+                const viewport = document.createElement('div');
+                viewport.className = VIEWPORT_CLASS;
+                const scale = document.createElement('div');
+                scale.className = SCALE_CLASS;
+
+                slide.parentNode.insertBefore(viewport, slide);
+                viewport.appendChild(scale);
+                scale.appendChild(slide);
+                this._syncViewportBackground(slide, viewport);
+
+                return viewport;
+            });
+        }
+
+        _syncViewportBackground(slide, viewport) {
+            const style = getComputedStyle(slide);
+            const hasBackgroundImage = style.backgroundImage && style.backgroundImage !== 'none';
+            const hasBackgroundColor = !['rgba(0, 0, 0, 0)', 'transparent'].includes(style.backgroundColor);
+            if (hasBackgroundImage || hasBackgroundColor) {
+                viewport.style.background = style.background;
+            } else {
+                viewport.style.background = '';
+            }
+            slide.style.background = 'transparent';
+        }
+
+        /* ---------- DOM scaffolding (auto-inserted if missing) ---------- */
+        _ensureNavDots() {
+            let el = document.getElementById('navDots');
+            if (!el) {
+                el = document.createElement('nav');
+                el.id = 'navDots';
+                el.className = 'nav-dots';
+                el.setAttribute('aria-label', 'Slide navigation');
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        _ensureKeyboardHint() {
+            let el = document.querySelector('.keyboard-hint');
+            if (!el) {
+                const i18n = {
+                    en: { navigate: 'navigate', restart: 'restart', fullscreen: 'fullscreen' },
+                    es: { navigate: 'navegar',   restart: 'inicio',   fullscreen: 'fullscreen' },
+                    fr: { navigate: 'naviguer',  restart: 'début',    fullscreen: 'fullscreen' },
+                    de: { navigate: 'blättern',  restart: 'anfang',   fullscreen: 'vollbild' },
+                    pt: { navigate: 'navegar',   restart: 'início',   fullscreen: 'fullscreen' },
+                    ja: { navigate: '移動',      restart: '先頭',      fullscreen: '全画面' },
+                    ko: { navigate: '이동',      restart: '처음',      fullscreen: '전체화면' },
+                    zh: { navigate: '翻页',      restart: '重置',      fullscreen: '全屏' },
+                    it: { navigate: 'navigare',  restart: 'inizio',   fullscreen: 'fullscreen' },
+                    nl: { navigate: 'bladeren',  restart: 'begin',    fullscreen: 'vollscherm' },
+                };
+                const t = i18n[_detectLang()] || i18n.en;
+                el = document.createElement('div');
+                el.className = 'keyboard-hint';
+                el.innerHTML = `<kbd>←</kbd> <kbd>→</kbd> ${t.navigate} &middot; <kbd>R</kbd> ${t.restart} &middot; <kbd>F</kbd> ${t.fullscreen}`;
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        _ensureCredit() {
+            let el = document.querySelector('.chassis-credit');
+            if (!el) {
+                el = document.createElement('div');
+                el.className = 'chassis-credit';
+                el.setAttribute('aria-hidden', 'true');
+                el.innerHTML = '💜 by ClickUp Brain';
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        /* ---------- Reveal engine ----------
+           Reveals are driven by the Web Animations API instead of CSS
+           transitions. This lets authors put .reveal* / .step on any
+           element: animation values live in the animation cascade origin
+           and win over normal author declarations, so no wrapper element
+           is required to isolate the chassis from author CSS.
+
+           State per slide:
+           - "hidden":  inline opacity/transform/filter from the 'from'
+                        keyframe of the variant. Set on init and on
+                        forward re-entry.
+           - "played":  animation is running or has run; the class
+                        `reveals-played` on the slide makes playback
+                        idempotent so observer re-fires (resize,
+                        fullscreen) don't restart the animation.
+           - "settled": animation canceled, inline styles cleared. Used
+                        for backward entries (we skip the animation and
+                        show the final state instantly) and for print. */
+
+        _setupReveals() {
+            // Lift the CSS FOUC guard first so getComputedStyle reads each
+            // element's natural opacity, not the guard's blanket opacity: 0.
+            // No paint occurs mid-task — inline hidden styles are applied
+            // before the browser yields, so there is no visible flash.
+            document.documentElement.classList.add('reveals-ready');
+            this.slides.forEach((slide) => {
+                slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                    el._targetOpacity = parseFloat(getComputedStyle(el).opacity);
+                    this._applyHiddenStyle(el);
+                });
+            });
+        }
+
+        _setupPrintSettling() {
+            // Browsers snapshot the document for print/PDF export. WAAPI
+            // animations don't necessarily complete in that snapshot, so
+            // settle every slide to its final state first. After printing,
+            // reset — but only for slides that haven't already been viewed,
+            // so the audience experience picks up where it left off.
+            window.addEventListener('beforeprint', () => {
+                this.slides.forEach((slide) => this._settleSlide(slide));
+            });
+        }
+
+        _readTokens() {
+            const cs = getComputedStyle(document.documentElement);
+            const rawDuration = parseFloat(cs.getPropertyValue('--reveal-duration'));
+            const duration = Number.isFinite(rawDuration) ? rawDuration * 1000 : 800;
+            const ease = cs.getPropertyValue('--reveal-ease').trim() || 'cubic-bezier(0.16, 1, 0.3, 1)';
+            const distance = cs.getPropertyValue('--reveal-distance').trim() || '28px';
+            const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            return {
+                duration: reducedMotion ? 1 : duration,
+                ease,
+                distance,
+            };
+        }
+
+        _getRevealDelay(el) {
+            // Use getAttribute('class') rather than el.className: on SVG
+            // elements, `.className` is an SVGAnimatedString (not a string)
+            // and calling .match on it throws. getAttribute is uniform
+            // across HTML and SVG.
+            const classes = el.getAttribute('class') || '';
+            const m = classes.match(/\bd([1-8])\b/);
+            if (!m) return 0;
+            // Matches CSS .dN: d1 = 100ms, d2 = 250ms, +150ms per step.
+            return 100 + (parseInt(m[1], 10) - 1) * 150;
+        }
+
+        _getRevealKeyframes(el, distance) {
+            const to = el._targetOpacity ?? 1;
+            if (el.classList.contains('reveal-left')) {
+                return [
+                    { opacity: 0, transform: `translateX(calc(-1 * ${distance}))` },
+                    { opacity: to, transform: 'translateX(0)' },
+                ];
+            }
+            if (el.classList.contains('reveal-right')) {
+                return [
+                    { opacity: 0, transform: `translateX(${distance})` },
+                    { opacity: to, transform: 'translateX(0)' },
+                ];
+            }
+            if (el.classList.contains('reveal-scale')) {
+                return [
+                    { opacity: 0, transform: 'scale(0.88)' },
+                    { opacity: to, transform: 'scale(1)' },
+                ];
+            }
+            if (el.classList.contains('reveal-blur')) {
+                return [
+                    { opacity: 0, filter: 'blur(10px)' },
+                    { opacity: to, filter: 'blur(0)' },
+                ];
+            }
+            // Default: .reveal or .step (slide up + fade)
+            return [
+                { opacity: 0, transform: `translateY(${distance})` },
+                { opacity: to, transform: 'translateY(0)' },
+            ];
+        }
+
+        _applyHiddenStyle(el) {
+            const { distance } = this._readTokens();
+            const from = this._getRevealKeyframes(el, distance)[0];
+            if ('opacity' in from) el.style.opacity = from.opacity;
+            if ('transform' in from) el.style.transform = from.transform;
+            if ('filter' in from) el.style.filter = from.filter;
+        }
+
+        _clearHiddenStyle(el) {
+            el.style.opacity = '';
+            el.style.transform = '';
+            el.style.filter = '';
+        }
+
+        _cancelReveal(el) {
+            if (el._revealAnim) {
+                el._revealAnim.cancel();
+                el._revealAnim = null;
+            }
+        }
+
+        _playReveal(el, delayOverride) {
+            this._cancelReveal(el);
+            const { duration, ease, distance } = this._readTokens();
+            const delay = typeof delayOverride === 'number' ? delayOverride : this._getRevealDelay(el);
+            const keyframes = this._getRevealKeyframes(el, distance);
+            // fill: 'backwards' applies the 'from' keyframe during the
+            // stagger delay so the element stays hidden until its turn,
+            // without pinning the 'to' keyframe after the animation ends.
+            // This lets co-existing author CSS (e.g. a `.pulse` CSS
+            // animation on the same element) take over naturally once the
+            // entrance completes — otherwise our fill would mask anything
+            // the author wanted to happen post-reveal.
+            const anim = el.animate(keyframes, {
+                duration,
+                delay,
+                easing: ease,
+                fill: 'backwards',
+            });
+            el._revealAnim = anim;
+            // Safe to clear inline 'from' styles now — the animation's
+            // backwards-fill holds the element at the 'from' keyframe for
+            // the duration of any stagger delay.
+            this._clearHiddenStyle(el);
+        }
+
+        _playSlideReveals(slide) {
+            if (slide.classList.contains('reveals-played')) return;
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(REVEAL_SELECTOR).forEach((el) => this._playReveal(el));
+            // .step elements stay hidden until the user advances.
+        }
+
+        _resetSlideReveals(slide) {
+            // Forward re-entry: cancel in-flight animations, re-hide
+            // everything, and reset step state so the slide replays cleanly
+            // when the observer next adds .visible.
+            slide.classList.remove('reveals-played');
+            slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._applyHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step.step-shown').forEach((el) => el.classList.remove('step-shown'));
+        }
+
+        _settleSlide(slide) {
+            // Print / PDF export: jump to the final state with everything
+            // shown, so every step appears in the exported document.
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._clearHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step').forEach((el) => el.classList.add('step-shown'));
+        }
+
+        _rewindSlide(slide) {
+            // Backward re-entry: show reveals instantly (no replay — the
+            // viewer already saw the intro) but hide every step, so the
+            // slide is positioned at the start of its stepped content and
+            // can be stepped through again.
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._clearHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step').forEach((el) => {
+                el.classList.remove('step-shown');
+                this._cancelReveal(el);
+                this._applyHiddenStyle(el);
+            });
+        }
+
+        /* ---------- Navigation ----------
+           goTo scrolls to the target. Both forward-replay and backward-
+           rewind need to mutate the target BEFORE scrolling — while it's
+           still offscreen — so the viewer never sees the old state flash
+           into view. Resetting after the slide is in view causes a visible
+           "show then hide" blink; the IntersectionObserver fires too late
+           (80% threshold) to catch it. */
+        goTo(index) {
+            const clamped = Math.max(0, Math.min(this.slides.length - 1, index));
+            if (clamped === this.currentSlide) return;
+
+            const target = this.slides[clamped];
+            const goingForward = clamped > this.currentSlide;
+
+            if (target.classList.contains('visible')) {
+                if (goingForward) {
+                    // Forward replay: full reset so the observer can play reveals fresh.
+                    target.classList.remove('visible');
+                    this._resetSlideReveals(target);
+                } else {
+                    // Backward rewind: hide any shown steps so the slide
+                    // scrolls back in at the start of its stepped content.
+                    this._rewindSlide(target);
+                }
+            }
+
+            this._scrollToSlide(clamped, 'smooth');
+        }
+
+        _scrollToSlide(index, behavior) {
+            this.viewports[index]?.scrollIntoView({ behavior, block: 'start' });
+        }
+
+        _slideIndexFromHash(hash) {
+            if (!hash) return -1;
+            return this.slides.findIndex((s) => '#' + s.id === hash);
+        }
+
+        _syncHash() {
+            const slide = this.slides[this.currentSlide];
+            if (!slide || !slide.id) return;
+            const newHash = '#' + slide.id;
+            if (location.hash !== newHash) {
+                // replaceState — keeps the URL in sync without polluting history,
+                // so the browser back button exits the deck instead of stepping through slides.
+                try {
+                    history.replaceState(null, '', newHash);
+                } catch {
+                    // Sandboxed iframes (opaque origin, about:srcdoc) reject URL
+                    // mutation with a SecurityError. Hash sync is a nicety — an
+                    // unguarded throw here kills the observer callback before it
+                    // marks the slide visible and plays its reveals.
+                }
+            }
+        }
+
+        _setupHashNav() {
+            // React to external hash changes (anchor link clicks, back/forward if user uses pushState manually)
+            window.addEventListener('hashchange', () => {
+                const idx = this._slideIndexFromHash(location.hash);
+                if (idx >= 0 && idx !== this.currentSlide) this.goTo(idx);
+            });
+        }
+
+        /* ---------- Custom cursor ----------
+           Accent disc that follows the pointer, hidden after idle. */
+        _setupCursor() {
+            if (!matchMedia('(hover: hover)').matches) return;
+
+            const cursor = document.createElement('div');
+            cursor.className = 'chassis-cursor';
+            cursor.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(cursor);
+            document.body.classList.add('chassis-cursor-active');
+
+            const half = 16;  // matches width/height / 2 in CSS
+            const IDLE_MS = 2500;
+            let idleTimer = null;
+
+            const show = () => {
+                cursor.classList.add('visible');
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(() => {
+                    cursor.classList.remove('visible');
+                }, IDLE_MS);
+            };
+            const hide = () => {
+                clearTimeout(idleTimer);
+                cursor.classList.remove('visible');
+            };
+
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.transform = `translate3d(${e.clientX - half}px, ${e.clientY - half}px, 0)`;
+                show();
+            });
+            document.addEventListener('mouseleave', hide);
+            document.addEventListener('mouseenter', show);
+        }
+
+        /* ---------- Fullscreen ---------- */
+        toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen?.().catch(() => {});
+            } else {
+                document.exitFullscreen?.();
+            }
+        }
+
+        next() { this.goTo(this.currentSlide + 1); }
+        prev() { this.goTo(this.currentSlide - 1); }
+        first() { this.goTo(0); }
+        last() { this.goTo(this.slides.length - 1); }
+
+        /* ---------- Step-aware advance / retreat ----------
+           advance() reveals the next .step on the current slide (if any),
+           otherwise advances to the next slide. retreat() hides the last
+           revealed step, otherwise goes back to the previous slide. */
+        advance() {
+            const current = this.slides[this.currentSlide];
+            const nextStep = current?.querySelector('.step:not(.step-shown)');
+            if (nextStep) {
+                nextStep.classList.add('step-shown');
+                // No stagger on click-reveal — the user's gesture is the trigger.
+                this._playReveal(nextStep, 0);
+                return;
+            }
+            this.next();
+        }
+        retreat() {
+            const current = this.slides[this.currentSlide];
+            const shown = current?.querySelectorAll('.step.step-shown');
+            if (shown && shown.length > 0) {
+                const last = shown[shown.length - 1];
+                last.classList.remove('step-shown');
+                this._cancelReveal(last);
+                this._applyHiddenStyle(last);
+                return;
+            }
+            this.prev();
+        }
+
+        /* ---------- Intersection observer ----------
+           Fire late (>= 80% in view) so reveals play on a settled slide.
+           This is the single source of truth for active-slide state.
+
+           Forward:  add .visible, play reveals. (goTo() has already reset
+                     the target to pre-reveal state if this is a re-visit,
+                     so the animation is fresh either way.)
+           Backward: add .visible, rewind to the start of the stepped
+                     content — reveals are shown instantly (no replay) and
+                     every step is hidden again so the viewer can step
+                     through it fresh. */
+        _setupIntersectionObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    const idx = this.viewports.indexOf(entry.target);
+                    if (idx < 0) return;
+                    const slide = this.slides[idx];
+
+                    if (idx === this.currentSlide) {
+                        // Same-slide re-fire (initial load, resize, fullscreen).
+                        if (!slide.classList.contains('visible')) {
+                            slide.classList.add('visible');
+                        }
+                        // Idempotent: only plays if not already marked played.
+                        this._playSlideReveals(slide);
+                        return;
+                    }
+
+                    const goingForward = idx > this.currentSlide;
+                    this.currentSlide = idx;
+                    this._updateNavDots();
+                    this._syncHash();
+
+                    slide.classList.add('visible');
+                    if (goingForward) {
+                        this._playSlideReveals(slide);
+                    } else {
+                        this._rewindSlide(slide);
+                    }
+                });
+            }, { threshold: 0.8 });
+
+            this.viewports.forEach((viewport) => observer.observe(viewport));
+        }
+
+        /* ---------- Keyboard ---------- */
+        _setupKeyboardNav() {
+            document.addEventListener('keydown', (e) => {
+                // Skip when user is editing text
+                if (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+
+                switch (e.key) {
+                    // Step-aware: consume steps first, then advance slides
+                    case 'ArrowDown':
+                    case 'ArrowRight':
+                    case ' ':
+                        e.preventDefault(); this.advance(); break;
+                    case 'ArrowUp':
+                    case 'ArrowLeft':
+                        e.preventDefault(); this.retreat(); break;
+                    // Slide-level: always skip past steps
+                    case 'PageDown':
+                        e.preventDefault(); this.next(); break;
+                    case 'PageUp':
+                        e.preventDefault(); this.prev(); break;
+                    case 'Home':
+                        e.preventDefault(); this.first(); break;
+                    case 'End':
+                        e.preventDefault(); this.last(); break;
+                    case 'f':
+                    case 'F':
+                        e.preventDefault(); this.toggleFullscreen(); break;
+                    case 'r':
+                    case 'R':
+                        e.preventDefault(); this.first(); break;
+                }
+            });
+        }
+
+        /* ---------- Wheel / trackpad ----------
+           ALWAYS preventDefault — letting any native wheel scroll through
+           races against scrollIntoView + mandatory snap, and blocks macOS
+           two-finger horizontal swipes from triggering browser back/forward.
+           Whichever axis has the larger magnitude wins, so vertical scroll
+           and horizontal trackpad swipes both drive advance/retreat. Lock
+           briefly after a gesture so trackpad inertia (continuous small
+           deltas) can't spam next(). */
+        _setupWheelNav() {
+            let locked = false;
+            window.addEventListener('wheel', (e) => {
+                if (e.ctrlKey) return;                // preserve browser pinch-zoom (ctrl+wheel)
+                e.preventDefault();                   // block native scroll + horizontal back-swipe
+                if (locked) return;
+                const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+                if (Math.abs(delta) < 20) return;     // ignore tiny flicks
+                locked = true;
+                if (delta > 0) this.advance(); else this.retreat();
+                setTimeout(() => { locked = false; }, 500);
+            }, { passive: false });
+        }
+
+        /* ---------- Touch / swipe ----------
+           Horizontal swipes advance / retreat slides; left = next, right =
+           prev (matches stories / carousel conventions). Dominantly
+           vertical swipes fall through to native scroll-snap so the
+           existing top/bottom behavior keeps working. A time budget
+           rejects slow pans that were really aborted scrolls. */
+        _setupTouchNav() {
+            const MIN_DISTANCE = 50;     // px — below this is a tap or jitter
+            const MAX_TIME = 600;        // ms — slower than this is a pan, not a swipe
+            const DOMINANCE = 1.2;       // horizontal must beat vertical by this factor
+
+            let startX = 0, startY = 0, startTime = 0;
+            let tracking = false;
+
+            window.addEventListener('touchstart', (e) => {
+                if (document.body.classList.contains('artifact-editor-editing')) { tracking = false; return; }
+                if (e.touches.length !== 1) { tracking = false; return; }
+                const t = e.touches[0];
+                startX = t.clientX;
+                startY = t.clientY;
+                startTime = performance.now();
+                tracking = true;
+            }, { passive: true });
+
+            window.addEventListener('touchend', (e) => {
+                if (!tracking) return;
+                tracking = false;
+                const t = e.changedTouches[0];
+                const dx = t.clientX - startX;
+                const dy = t.clientY - startY;
+                const ax = Math.abs(dx), ay = Math.abs(dy);
+                if (ax < MIN_DISTANCE) return;
+                if (ax < ay * DOMINANCE) return;
+                if (performance.now() - startTime > MAX_TIME) return;
+                if (dx < 0) this.advance(); else this.retreat();
+            }, { passive: true });
+
+            window.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+        }
+
+        /* ---------- Canvas scaling ----------
+           Each scaler holds a fixed 1920×1080 slide. Compute the
+           scale factor that fits it inside the viewport and apply via
+           CSS custom property. Runs on init, resize, and fullscreen. */
+        _setupCanvasScale() {
+            const CANVAS_W = 1920;
+            const CANVAS_H = 1080;
+            const scales = this.scales;
+
+            const update = () => {
+                const scale = Math.min(
+                    window.innerWidth / CANVAS_W,
+                    window.innerHeight / CANVAS_H
+                );
+                scales.forEach((el) => {
+                    el?.style.setProperty('--slide-scale', scale);
+                });
+            };
+
+            update();
+            window.addEventListener('resize', update);
+            document.addEventListener('fullscreenchange', () => {
+                requestAnimationFrame(update);
+            });
+        }
+
+        /* ---------- Viewport sync ----------
+           Resize / fullscreenchange → realign current slide. Each slide is
+           100vh, so a viewport height change leaves the existing scroll
+           position out of alignment with the slide top; scroll-snap doesn't
+           re-snap on its own. */
+        _setupViewportSync() {
+            const realign = () => {
+                requestAnimationFrame(() => {
+                    this._scrollToSlide(this.currentSlide, 'auto');
+                });
+            };
+            window.addEventListener('resize', realign);
+            document.addEventListener('fullscreenchange', realign);
+        }
+
+        /* ---------- Nav dots ---------- */
+        _buildNavDots() {
+            // Clear first — prevents duplicates when DOM is re-serialized/re-opened
+            this.navDotsContainer.innerHTML = '';
+            this.slides.forEach((slide, idx) => {
+                const dot = document.createElement('button');
+                dot.setAttribute('aria-label', `Go to slide ${idx + 1}`);
+                if (idx === 0) dot.classList.add('active');
+                dot.addEventListener('click', () => this.goTo(idx));
+                this.navDotsContainer.appendChild(dot);
+            });
+        }
+
+        _updateNavDots() {
+            const dots = this.navDotsContainer.querySelectorAll('button');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === this.currentSlide);
+            });
+        }
+    }
+
+    /* ---------- Auto-init ---------- */
+    function init() {
+        // Each slide canvas is its own editable host for the inline editor.
+        document.querySelectorAll('.slide').forEach(function (el) {
+            el.classList.add('artifact-editable');
+        });
+        window.slides = new SlidePresentation();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+
+</script>
+<!-- /skill:chassis -->
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>W16S2 – Science, Tech & Flourishing</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&display=swap"/>
+<style>
+:root{
+--background:#0a1628;
+--foreground:#e8edf5;
+--accent:#1e90ff;
+--accent-foreground:#ffffff;
+--card:#122040;
+--card-foreground:#e8edf5;
+--font-display:'Archivo Black',sans-serif;
+--font-body:'Space Grotesk',sans-serif;
+--grad1:linear-gradient(135deg,#0a1628 0%,#1a2d4f 50%,#0a1628 100%);
+--grad2:linear-gradient(160deg,#0d1f3c 0%,#162d50 100%);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--background);font-family:var(--font-body);color:var(--foreground);}
+.slide{position:relative;width:1920px;height:1080px;padding:80px;display:flex;flex-direction:column;justify-content:center;overflow:hidden;background:var(--grad1);}
+h1,h2,h3{font-family:var(--font-display);letter-spacing:-0.02em;line-height:1.1;}
+h1{font-size:120px;}
+h2{font-size:64px;}
+h3{font-size:44px;}
+p,li{font-size:36px;line-height:1.5;font-weight:400;max-width:800px;}
+.eyebrow{font-size:24px;color:var(--accent);text-transform:uppercase;letter-spacing:0.1em;font-weight:600;}
+.section-num{font-size:200px;font-family:var(--font-display);color:rgba(30,144,255,0.12);position:absolute;top:40px;right:80px;line-height:1;}
+.card{background:var(--card);border-radius:20px;padding:60px;border:1px solid rgba(30,144,255,0.2);box-shadow:0 20px 60px rgba(0,0,0,0.4);}
+.card-accent{background:linear-gradient(135deg,#1e3a5f,#1e90ff);border:none;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:40px;width:100%;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px;width:100%;}
+.stat{font-size:140px;font-family:var(--font-display);color:var(--accent);line-height:1;}
+.stat-label{font-size:28px;color:rgba(232,237,245,0.6);margin-top:10px;}
+.meme-card{background:var(--card);border-radius:20px;padding:40px;text-align:center;border:2px solid rgba(30,144,255,0.3);}
+.meme-emoji{font-size:120px;margin-bottom:20px;}
+.meme-text{font-size:32px;font-style:italic;color:rgba(232,237,245,0.8);}
+.quiz-option{background:rgba(30,144,255,0.08);border:2px solid rgba(30,144,255,0.3);border-radius:16px;padding:24px 36px;margin:16px 0;font-size:32px;cursor:pointer;transition:all 0.3s;}
+.quiz-option:hover{background:rgba(30,144,255,0.2);border-color:var(--accent);}
+.quiz-answer{display:none;background:rgba(30,144,255,0.15);border-radius:16px;padding:24px 36px;margin-top:20px;font-size:30px;border-left:4px solid var(--accent);}
+.highlight{color:var(--accent);font-weight:700;}
+.tag{display:inline-block;background:rgba(30,144,255,0.15);color:var(--accent);padding:8px 20px;border-radius:100px;font-size:22px;font-weight:600;margin:4px;}
+.figure-box{background:var(--card);border-radius:16px;padding:40px;border:1px solid rgba(30,144,255,0.2);text-align:center;}
+.bar-chart{display:flex;align-items:flex-end;gap:20px;height:300px;padding:20px 0;}
+.bar{background:linear-gradient(to top,#1e90ff,#64b5f6);border-radius:8px 8px 0 0;min-width:60px;position:relative;transition:height 0.5s;}
+.bar-label{position:absolute;bottom:-35px;left:50%;transform:translateX(-50%);font-size:18px;white-space:nowrap;color:rgba(232,237,245,0.7);}
+.bar-value{position:absolute;top:-30px;left:50%;transform:translateX(-50%);font-size:18px;color:var(--accent);font-weight:700;}
+.timeline{position:relative;padding-left:60px;border-left:3px solid rgba(30,144,255,0.3);}
+.timeline-item{margin-bottom:30px;position:relative;}
+.timeline-item::before{content:'';position:absolute;left:-69px;top:8px;width:16px;height:16px;border-radius:50%;background:var(--accent);}
+.glow-circle{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(30,144,255,0.1),transparent 70%);pointer-events:none;}
+.footer-note{position:absolute;bottom:30px;left:80px;font-size:20px;color:rgba(232,237,245,0.4);}
+
+/* Script viewer */
+.script-viewer{display:none;position:fixed;top:0;right:0;width:480px;height:100vh;background:#0d1117;border-left:2px solid #1e90ff;padding:30px;overflow-y:auto;z-index:9999;font-size:20px;line-height:1.6;color:#c9d1d9;font-family:'Space Grotesk',sans-serif;}
+.script-viewer.active{display:block;}
+.script-viewer h4{color:#1e90ff;margin-bottom:12px;font-size:18px;}
+.script-viewer .script-content{white-space:pre-wrap;}
+
+/* Answer key overlay */
+.answer-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,22,40,0.95);z-index:10000;padding:80px;overflow-y:auto;}
+.answer-overlay.active{display:block;}
+.answer-overlay h2{font-family:var(--font-display);color:#1e90ff;margin-bottom:40px;font-size:48px;}
+.answer-overlay .answer-item{background:#122040;border-radius:12px;padding:24px;margin-bottom:16px;font-size:24px;border-left:4px solid #1e90ff;}
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Title -->
+<section class="slide" data-script="Welcome back sa ating STS class! Today, we're diving into one of the most exciting topics natin: Science, Technology, and Human Flourishing. Paano ba talaga ang tech na naghe-help or naghi-hinder sa human potential natin? Let's find out.">
+<div class="glow-circle" style="top:-200px;left:-200px;"></div>
+<span class="eyebrow reveal d1">Week 16 · Session 2</span>
+<h1 class="reveal d2" style="font-size:100px;margin-top:30px;">Science, Tech &<br><span style="color:var(--accent)">Human Flourishing</span></h1>
+<p class="reveal d3" style="margin-top:30px;color:rgba(232,237,245,0.7);">How technology enables — and sometimes hinders — human potential</p>
+<div class="reveal d4" style="margin-top:40px;">
+<span class="tag">GEC STS</span><span class="tag">BSIS / SW / EDUC / CRIM / BUS</span><span class="tag">Week 16</span>
+</div>
+<span class="section-num reveal d5">16</span>
+</section>
+
+<!-- SLIDE 2: Learning Objectives -->
+<section class="slide" data-script="Ito ang ating learning objectives for today. By the end of this session, maiintindihan niyo kung ano ang human flourishing, paano ini-enable ng technology, at kung saan naman ito nagi-ging hindrance.">
+<span class="section-num">01</span>
+<span class="eyebrow reveal d1">Objectives</span>
+<h2 class="reveal d2" style="margin-top:20px;">What You'll Learn Today</h2>
+<div class="card reveal d3" style="margin-top:40px;">
+<ul style="list-style:none;padding:0;">
+<li style="margin-bottom:20px;font-size:32px;">✅ Define human flourishing from philosophical & scientific perspectives</li>
+<li style="margin-bottom:20px;font-size:32px;">✅ Analyze how technology enables human potential</li>
+<li style="margin-bottom:20px;font-size:32px;">✅ Identify ways technology hinders flourishing</li>
+<li style="margin-bottom:20px;font-size:32px;">✅ Evaluate the role of STS in achieving the good life</li>
+</ul>
+</div>
+</section>
+
+<!-- SLIDE 3: What is Human Flourishing? -->
+<section class="slide" data-script="So ano ba ang human flourishing? In Greek, tinatawag itong 'eudaimonia' ni Aristotle. Hindi lang ito about being happy. It's about living well, reaching your full potential, doing what you're meant to do. Parang leveling up in life, pero not just individually, pati na rin ang society.">
+<span class="section-num">02</span>
+<span class="eyebrow reveal d1">Core Concept</span>
+<h2 class="reveal d2" style="margin-top:20px;">What is Human Flourishing?</h2>
+<div class="grid-2 reveal d3" style="margin-top:40px;">
+<div class="card">
+<h3 style="color:var(--accent);font-size:36px;margin-bottom:16px;">Eudaimonia (Aristotle)</h3>
+<p style="font-size:28px;">The state of living well and doing well. Not mere happiness but the fulfillment of one's purpose and potential.</p>
+</div>
+<div class="card">
+<h3 style="color:var(--accent);font-size:36px;margin-bottom:16px;">Modern View</h3>
+<p style="font-size:28px;">Physical health, mental wellbeing, meaningful relationships, creative expression, and contribution to society.</p>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 4: Dimensions of Flourishing -->
+<section class="slide" data-script="Human flourishing ay multi-dimensional. Hindi lang physical health ang kailangan. May intellectual, emotional, social, spiritual, at economic dimensions din. Think of it as a wheel: pag may isa na flat, hindi smooth ang ride ng life mo.">
+<span class="section-num">02</span>
+<span class="eyebrow reveal d1">Framework</span>
+<h2 class="reveal d2" style="margin-top:20px;">Dimensions of Flourishing</h2>
+<div class="grid-3 reveal d3" style="margin-top:40px;">
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:60px;margin-bottom:12px;">🧠</div>
+<h3 style="font-size:28px;margin-bottom:8px;">Intellectual</h3>
+<p style="font-size:22px;">Learning, critical thinking, creativity</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:60px;margin-bottom:12px;">💪</div>
+<h3 style="font-size:28px;margin-bottom:8px;">Physical</h3>
+<p style="font-size:22px;">Health, vitality, bodily wellbeing</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:60px;margin-bottom:12px;">❤️</div>
+<h3 style="font-size:28px;margin-bottom:8px;">Emotional</h3>
+<p style="font-size:22px;">Self-awareness, resilience, empathy</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:60px;margin-bottom:12px;">🤝</div>
+<h3 style="font-size:28px;margin-bottom:8px;">Social</h3>
+<p style="font-size:22px;">Relationships, community, belonging</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:60px;margin-bottom:12px;">🙏</div>
+<h3 style="font-size:28px;margin-bottom:8px;">Spiritual</h3>
+<p style="font-size:22px;">Purpose, meaning, values</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:60px;margin-bottom:12px;">💰</div>
+<h3 style="font-size:28px;margin-bottom:8px;">Economic</h3>
+<p style="font-size:22px;">Security, opportunity, livelihood</p>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 5: Meme Slide -->
+<section class="slide" data-script="Okay meme time! Relate naman kayo dito diba? May WiFi ka na, may phone ka na, may food ka na, pero di ka pa rin fulfilled. Because flourishing is not just about having stuff.">
+<div class="meme-card reveal d1" style="max-width:900px;margin:0 auto;">
+<div class="meme-emoji">😩📱💸</div>
+<div class="meme-text" style="font-size:40px;">"Me: Has WiFi, food, and a phone.<br>Also me: Why do I feel empty inside?"</div>
+<p style="font-size:24px;color:rgba(232,237,245,0.5);margin-top:20px;">When material comfort ≠ flourishing</p>
+</div>
+</section>
+
+<!-- SLIDE 6: Science & Flourishing Historical View -->
+<section class="slide" data-script="Historically, science has always been about improving human life. From the discovery of fire, to medicine, to agriculture. Every major scientific advancement was driven by the desire na mag-flourish ang humanity.">
+<span class="section-num">03</span>
+<span class="eyebrow reveal d1">Historical Context</span>
+<h2 class="reveal d2" style="margin-top:20px;">Science Has Always Pursued Flourishing</h2>
+<div class="timeline reveal d3" style="margin-top:40px;">
+<div class="timeline-item">
+<h3 style="font-size:30px;color:var(--accent);">Fire & Tools (2M years ago)</h3>
+<p style="font-size:26px;">Extended lifespan, enabled cooking, expanded capability</p>
+</div>
+<div class="timeline-item">
+<h3 style="font-size:30px;color:var(--accent);">Agriculture (10,000 BCE)</h3>
+<p style="font-size:26px;">Stable food → civilization → intellectual pursuits</p>
+</div>
+<div class="timeline-item">
+<h3 style="font-size:30px;color:var(--accent);">Medicine (1800s+)</h3>
+<p style="font-size:26px;">Vaccines, antibiotics → doubled life expectancy</p>
+</div>
+<div class="timeline-item">
+<h3 style="font-size:30px;color:var(--accent);">Digital Revolution (1990s+)</h3>
+<p style="font-size:26px;">Information access, global connection, new economies</p>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 7: Tech as Enabler - Overview -->
+<section class="slide" data-script="Now let's talk about how tech ENABLES human flourishing. Marami! Education, health, connection, creativity, economic opportunity. Technology, when used well, ay amplifier ng human potential.">
+<span class="section-num">04</span>
+<span class="eyebrow reveal d1">Technology as Enabler</span>
+<h2 class="reveal d2" style="margin-top:20px;">How Tech <span style="color:var(--accent)">Enables</span> Flourishing</h2>
+<div class="grid-2 reveal d3" style="margin-top:40px;">
+<div class="card card-accent" style="padding:40px;">
+<h3 style="font-size:32px;color:#fff;margin-bottom:12px;">📚 Education Access</h3>
+<p style="font-size:26px;color:rgba(255,255,255,0.9);">Online learning, MOOCs, free knowledge for all</p>
+</div>
+<div class="card card-accent" style="padding:40px;">
+<h3 style="font-size:32px;color:#fff;margin-bottom:12px;">🏥 Healthcare</h3>
+<p style="font-size:26px;color:rgba(255,255,255,0.9);">Telemedicine, AI diagnostics, wearable monitors</p>
+</div>
+<div class="card card-accent" style="padding:40px;">
+<h3 style="font-size:32px;color:#fff;margin-bottom:12px;">🌐 Connection</h3>
+<p style="font-size:26px;color:rgba(255,255,255,0.9);">Social media, video calls, bridging distances</p>
+</div>
+<div class="card card-accent" style="padding:40px;">
+<h3 style="font-size:32px;color:#fff;margin-bottom:12px;">💡 Creativity</h3>
+<p style="font-size:26px;color:rgba(255,255,255,0.9);">Digital art, music production, content creation</p>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 8: Education & Tech -->
+<section class="slide" data-script="Sa education alone, tingnan niyo. Before, kailangan mo ng expensive university para makapag-aral. Ngayon, may Khan Academy, Coursera, YouTube tutorials. Isang bata sa probinsya pwede nang matuto ng coding for free.">
+<span class="section-num">04</span>
+<span class="eyebrow reveal d1">Enabler #1</span>
+<h2 class="reveal d2" style="margin-top:20px;">Education: Democratized by Tech</h2>
+<div class="card reveal d3" style="margin-top:40px;">
+<div class="grid-2">
+<div>
+<div class="stat">2.3B</div>
+<div class="stat-label">Internet users accessing educational content (2025)</div>
+</div>
+<div>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:28px;margin-bottom:16px;">📱 Khan Academy: 150M+ learners</li>
+<li style="font-size:28px;margin-bottom:16px;">💻 Coursera: 130M+ registered</li>
+<li style="font-size:28px;margin-bottom:16px;">🎥 YouTube EDU: Billions of views</li>
+<li style="font-size:28px;margin-bottom:16px;">🇵🇭 DepEd Commons: Free Filipino content</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 9: Healthcare & Tech -->
+<section class="slide" data-script="Healthcare naman. Imagine noon, kailangan mo pumunta physically sa doctor para sa simpleng consultation. Ngayon, telemedicine! AI na rin nag-aanalyze ng X-rays at MRIs. Wearables like smartwatch, namo-monitor ang heart rate mo 24/7.">
+<span class="section-num">04</span>
+<span class="eyebrow reveal d1">Enabler #2</span>
+<h2 class="reveal d2" style="margin-top:20px;">Healthcare: Extended & Enhanced</h2>
+<div class="grid-3 reveal d3" style="margin-top:40px;">
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:60px;margin-bottom:12px;">🤖</div>
+<h3 style="font-size:26px;">AI Diagnostics</h3>
+<p style="font-size:22px;">97% accuracy in detecting certain cancers</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:60px;margin-bottom:12px;">⌚</div>
+<h3 style="font-size:26px;">Wearables</h3>
+<p style="font-size:22px;">24/7 heart, sleep, activity monitoring</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:60px;margin-bottom:12px;">📲</div>
+<h3 style="font-size:26px;">Telemedicine</h3>
+<p style="font-size:22px;">Doctor visits from home, rural access</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:60px;margin-bottom:12px;">🧬</div>
+<h3 style="font-size:26px;">Genomics</h3>
+<p style="font-size:22px;">Personalized medicine, gene therapy</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:60px;margin-bottom:12px;">🦾</div>
+<h3 style="font-size:26px;">Prosthetics</h3>
+<p style="font-size:22px;">3D-printed, mind-controlled limbs</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:60px;margin-bottom:12px;">💊</div>
+<h3 style="font-size:26px;">Drug Discovery</h3>
+<p style="font-size:22px;">AI cuts development time by 60%</p>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 10: Connection & Tech -->
+<section class="slide" data-script="Connection naman. Dati, kung nasa ibang bansa ang family member mo, sulat lang at tawag sa landline na sobrang mahal. Ngayon? Free video call anytime. Pero syempre, may downside din na tatalakayin natin later.">
+<span class="section-num">04</span>
+<span class="eyebrow reveal d1">Enabler #3</span>
+<h2 class="reveal d2" style="margin-top:20px;">Human Connection: Bridging Distance</h2>
+<div class="card reveal d3" style="margin-top:40px;">
+<div style="display:flex;align-items:center;gap:60px;">
+<div>
+<div class="stat" style="font-size:100px;">5.2B</div>
+<div class="stat-label" style="font-size:24px;">Social media users worldwide (2025)</div>
+</div>
+<div>
+<p style="font-size:28px;margin-bottom:16px;">🇵🇭 OFW families stay connected via Messenger/Viber</p>
+<p style="font-size:28px;margin-bottom:16px;">🌍 Long-distance relationships sustained by tech</p>
+<p style="font-size:28px;margin-bottom:16px;">🏘️ Online communities for niche interests</p>
+<p style="font-size:28px;">🆘 Crisis communication during disasters</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 11: Creativity & Tech -->
+<section class="slide" data-script="Creativity! Ang daming artists ngayon na nag-start sa digital tools. Musicians recording sa bedroom, visual artists using Procreate or Canva, writers publishing on Wattpad. Technology lowered the barrier to creative expression.">
+<span class="section-num">04</span>
+<span class="eyebrow reveal d1">Enabler #4</span>
+<h2 class="reveal d2" style="margin-top:20px;">Creativity: Unleashed by Digital Tools</h2>
+<div class="grid-2 reveal d3" style="margin-top:40px;">
+<div class="card" style="padding:40px;">
+<h3 style="font-size:30px;color:var(--accent);margin-bottom:12px;">Before Tech</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:26px;margin-bottom:12px;">❌ Expensive studio equipment</li>
+<li style="font-size:26px;margin-bottom:12px;">❌ Gatekeepers (publishers, labels)</li>
+<li style="font-size:26px;margin-bottom:12px;">❌ Limited distribution</li>
+<li style="font-size:26px;">❌ High barrier to entry</li>
+</ul>
+</div>
+<div class="card" style="padding:40px;">
+<h3 style="font-size:30px;color:var(--accent);margin-bottom:12px;">With Tech</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:26px;margin-bottom:12px;">✅ Phone + free apps = studio</li>
+<li style="font-size:26px;margin-bottom:12px;">✅ Self-publish, self-release</li>
+<li style="font-size:26px;margin-bottom:12px;">✅ Global audience instantly</li>
+<li style="font-size:26px;">✅ AI-assisted creation tools</li>
+</ul>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 12: Philippine Context -->
+<section class="slide" data-script="Sa Philippine context naman, maraming examples kung paano ang tech nag-enable ng flourishing. GCash revolutionized financial inclusion. Farmers' apps para sa weather forecasting. At siyempre ang online freelancing na nag-boost ng economy natin.">
+<span class="section-num">05</span>
+<span class="eyebrow reveal d1">Philippine Context</span>
+<h2 class="reveal d2" style="margin-top:20px;">Tech & Flourishing in the 🇵🇭</h2>
+<div class="grid-2 reveal d3" style="margin-top:40px;">
+<div class="card" style="padding:35px;">
+<div style="font-size:50px;margin-bottom:12px;">💳</div>
+<h3 style="font-size:28px;">GCash/Maya</h3>
+<p style="font-size:24px;">Financial inclusion for unbanked Filipinos. 81M+ GCash users.</p>
+</div>
+<div class="card" style="padding:35px;">
+<div style="font-size:50px;margin-bottom:12px;">🌾</div>
+<h3 style="font-size:28px;">AgriTech</h3>
+<p style="font-size:24px;">Weather apps, crop management, market access for farmers.</p>
+</div>
+<div class="card" style="padding:35px;">
+<div style="font-size:50px;margin-bottom:12px;">💼</div>
+<h3 style="font-size:28px;">Freelancing</h3>
+<p style="font-size:24px;">PH is #6 in global freelancing. $3B+ annual earnings.</p>
+</div>
+<div class="card" style="padding:35px;">
+<div style="font-size:50px;margin-bottom:12px;">📡</div>
+<h3 style="font-size:28px;">Starlink & 5G</h3>
+<p style="font-size:24px;">Connecting remote islands and provinces.</p>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 13: Transition - The Dark Side -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="Okay, ngayon naman, let's talk about the other side. Hindi lahat ng tech ay pure good. May mga ways din na naghi-hinder ang technology sa human flourishing natin. Brace yourselves.">
+<div class="glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,50,50,0.1),transparent 70%);"></div>
+<h1 class="reveal-scale d1" style="font-size:100px;">But Wait...<br><span style="color:#ff4444;">The Dark Side</span> 🌑</h1>
+<p class="reveal d2" style="margin-top:30px;font-size:36px;color:rgba(232,237,245,0.7);max-width:700px;margin-left:auto;margin-right:auto;">When technology becomes a barrier to flourishing</p>
+</section>
+
+<!-- SLIDE 14: Tech as Hindrance Overview -->
+<section class="slide" data-script="Here are the major ways na naghi-hinder ang tech sa flourishing natin. Mental health issues, attention economy, social isolation, job displacement, at privacy erosion. Isa-isahin natin.">
+<span class="section-num">06</span>
+<span class="eyebrow reveal d1">Technology as Hindrance</span>
+<h2 class="reveal d2" style="margin-top:20px;">How Tech <span style="color:#ff4444;">Hinders</span> Flourishing</h2>
+<div class="grid-2 reveal d3" style="margin-top:40px;">
+<div class="card" style="padding:35px;border-color:rgba(255,68,68,0.3);">
+<h3 style="font-size:28px;color:#ff4444;">🧠 Mental Health Crisis</h3>
+<p style="font-size:24px;">Anxiety, depression, addiction linked to social media</p>
+</div>
+<div class="card" style="padding:35px;border-color:rgba(255,68,68,0.3);">
+<h3 style="font-size:28px;color:#ff4444;">👁️ Attention Economy</h3>
+<p style="font-size:24px;">Apps designed to steal your focus and time</p>
+</div>
+<div class="card" style="padding:35px;border-color:rgba(255,68,68,0.3);">
+<h3 style="font-size:28px;color:#ff4444;">😔 Social Isolation</h3>
+<p style="font-size:24px;">Connected online, disconnected in real life</p>
+</div>
+<div class="card" style="padding:35px;border-color:rgba(255,68,68,0.3);">
+<h3 style="font-size:28px;color:#ff4444;">🤖 Job Displacement</h3>
+<p style="font-size:24px;">Automation replacing human workers</p>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 15: Mental Health Stats -->
+<section class="slide" data-script="Look at these numbers. Gen Z and millennials are experiencing unprecedented levels of anxiety and depression. Maraming studies ang nagco-correlate nito sa social media use. Hindi ito coincidence, guys.">
+<span class="section-num">06</span>
+<span class="eyebrow reveal d1">Hindrance #1</span>
+<h2 class="reveal d2" style="margin-top:20px;">The Mental Health Crisis</h2>
+<div class="card reveal d3" style="margin-top:40px;">
+<div class="bar-chart" style="justify-content:center;align-items:flex-end;">
+<div class="bar" style="height:120px;width:80px;"><span class="bar-value">35%</span><span class="bar-label">2010</span></div>
+<div class="bar" style="height:170px;width:80px;"><span class="bar-value">48%</span><span class="bar-label">2015</span></div>
+<div class="bar" style="height:230px;width:80px;"><span class="bar-value">62%</span><span class="bar-label">2020</span></div>
+<div class="bar" style="height:280px;width:80px;background:linear-gradient(to top,#ff4444,#ff8888);"><span class="bar-value">71%</span><span class="bar-label">2025</span></div>
+</div>
+<p style="text-align:center;font-size:24px;color:rgba(232,237,245,0.6);margin-top:40px;">% of Gen Z reporting anxiety symptoms correlated with social media use (multiple studies)</p>
+</div>
+</section>
+
+<!-- SLIDE 16: Attention Economy -->
+<section class="slide" data-script="The attention economy. Alam niyo ba na ang average person ay nag-che-check ng phone niya 96 times a day? Ang apps ay designed talaga para ma-addict ka. Infinite scroll, notifications, likes. Lahat yan ay engineered para hindi ka makaalis.">
+<span class="section-num">06</span>
+<span class="eyebrow reveal d1">Hindrance #2</span>
+<h2 class="reveal d2" style="margin-top:20px;">The Attention Economy</h2>
+<div class="grid-2 reveal d3" style="margin-top:40px;">
+<div class="card" style="text-align:center;">
+<div class="stat" style="font-size:100px;">96×</div>
+<div class="stat-label">Average daily phone checks</div>
+</div>
+<div class="card" style="padding:35px;">
+<h3 style="font-size:28px;color:var(--accent);margin-bottom:16px;">Designed to Addict:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:26px;margin-bottom:12px;">♾️ Infinite scroll</li>
+<li style="font-size:26px;margin-bottom:12px;">🔔 Push notifications</li>
+<li style="font-size:26px;margin-bottom:12px;">❤️ Variable reward (likes)</li>
+<li style="font-size:26px;margin-bottom:12px;">👻 FOMO triggers</li>
+<li style="font-size:26px;">🎰 Slot machine psychology</li>
+</ul>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 17: Meme - Attention -->
+<section class="slide" style="justify-content:center;align-items:center;" data-script="Relate ba kayo? Mag-open lang ng TikTok tapos biglang 3AM na. That's by design, hindi by accident.">
+<div class="meme-card reveal d1" style="max-width:900px;">
+<div class="meme-emoji">📱⏰😱</div>
+<div class="meme-text" style="font-size:38px;">"I'll just watch one TikTok..."<br><br>*3 hours later*<br>"Why did I open this app again?"</div>
+<p style="font-size:22px;color:rgba(232,237,245,0.5);margin-top:20px;">The Attention Economy in action 💀</p>
+</div>
+</section>
+
+<!-- SLIDE 18: Social Isolation Paradox -->
+<section class="slide" data-script="Here's the paradox: we're more connected than ever, pero ang loneliness epidemic ay at an all-time high. Having 1000 Facebook friends doesn't mean you have real connections. Quality over quantity talaga.">
+<span class="section-num">06</span>
+<span class="eyebrow reveal d1">Hindrance #3</span>
+<h2 class="reveal d2" style="margin-top:20px;">The Loneliness Paradox</h2>
+<div class="card reveal d3" style="margin-top:40px;">
+<div class="grid-2">
+<div style="text-align:center;">
+<div class="stat" style="font-size:90px;">5.2B</div>
+<div class="stat-label" style="font-size:22px;">People on social media</div>
+<p style="font-size:60px;margin-top:20px;">yet...</p>
+</div>
+<div style="text-align:center;">
+<div class="stat" style="font-size:90px;color:#ff4444;">61%</div>
+<div class="stat-label" style="font-size:22px;">of young adults report feeling lonely (2025)</div>
+</div>
+</div>
+</div>
+<p class="reveal d4" style="margin-top:30px;font-size:28px;color:rgba(232,237,245,0.6);">More connections ≠ deeper connections</p>
+</section>
+
+<!-- SLIDE 19: Job Displacement -->
+<section class="slide" data-script="At siyempre, job displacement. Ang automation at AI ay nagre-replace ng maraming traditional jobs. Call centers, manufacturing, even creative work. Sa Philippines, this is a big concern kasi ang BPO industry ay isa sa pinaka-malaking employer natin.">
+<span class="section-num">06</span>
+<span class="eyebrow reveal d1">Hindrance #4</span>
+<h2 class="reveal d2" style="margin-top:20px;">Job Displacement & Automation</h2>
+<div class="card reveal d3" style="margin-top:40px;">
+<div class="grid-2">
+<div>
+<h3 style="font-size:28px;color:#ff4444;margin-bottom:16px;">Jobs at Risk (Philippines)</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:26px;margin-bottom:12px;">📞 Call center agents (AI chatbots)</li>
+<li style="font-size:26px;margin-bottom:12px;">🏭 Factory workers (robotics)</li>
+<li style="font-size:26px;margin-bottom:12px;">🚗 Drivers (autonomous vehicles)</li>
+<li style="font-size:26px;margin-bottom:12px;">📊 Data entry (RPA)</li>
+</ul>
+</div>
+<div style="text-align:center;">
+<div class="stat" style="font-size:80px;">300M</div>
+<div class="stat-label">Jobs globally affected by AI by 2030 (Goldman Sachs)</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 20: Privacy & Surveillance -->
+<section class="slide" data-script="At ang privacy. Every time nag-scroll ka, may data na kinukolekta. Your location, your preferences, your conversations. We're living in a surveillance economy kung saan ikaw ang product, hindi ang customer.">
+<span class="section-num">06</span>
+<span class="eyebrow reveal d1">Hindrance #5</span>
+<h2 class="reveal d2" style="margin-top:20px;">Privacy Erosion & Surveillance</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<h3 style="font-size:36px;color:var(--accent);margin-bottom:30px;text-align:center;">"If the product is free, YOU are the product."</h3>
+<div class="grid-3" style="margin-top:30px;">
+<div style="text-align:center;">
+<div style="font-size:50px;">📍</div>
+<p style="font-size:24px;">Location tracking 24/7</p>
+</div>
+<div style="text-align:center;">
+<div style="font-size:50px;">🎯</div>
+<p style="font-size:24px;">Targeted ads from conversations</p>
+</div>
+<div style="text-align:center;">
+<div style="font-size:50px;">🔍</div>
+<p style="font-size:24px;">Search history profiling</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 21: The Balance -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="So the question is: paano ba natin bina-balance ito? How do we use technology na nag-e-enable ng flourishing without falling into the traps na naghi-hinder nito?">
+<div class="glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+<span class="eyebrow reveal d1">The Central Question</span>
+<h1 class="reveal-scale d2" style="font-size:80px;margin-top:30px;">How Do We<br><span style="color:var(--accent)">Balance</span> It?</h1>
+<p class="reveal d3" style="margin-top:30px;font-size:32px;color:rgba(232,237,245,0.7);max-width:700px;">Harnessing tech's power while protecting our humanity</p>
+</section>
+
+<!-- SLIDE 22: Framework for Balance -->
+<section class="slide" data-script="Here's a framework. Think of it as four pillars: Intentional Use, Digital Literacy, Ethical Design, at Policy & Regulation. These four together can help us achieve tech-enabled flourishing.">
+<span class="section-num">07</span>
+<span class="eyebrow reveal d1">Framework</span>
+<h2 class="reveal d2" style="margin-top:20px;">Four Pillars of Tech-Enabled Flourishing</h2>
+<div class="grid-2 reveal d3" style="margin-top:40px;">
+<div class="card card-accent" style="padding:40px;">
+<h3 style="font-size:32px;color:#fff;">1. Intentional Use</h3>
+<p style="font-size:24px;color:rgba(255,255,255,0.9);">Be deliberate about how, when, and why you use tech</p>
+</div>
+<div class="card card-accent" style="padding:40px;">
+<h3 style="font-size:32px;color:#fff;">2. Digital Literacy</h3>
+<p style="font-size:24px;color:rgba(255,255,255,0.9);">Understand how tech works, including its manipulation tactics</p>
+</div>
+<div class="card card-accent" style="padding:40px;">
+<h3 style="font-size:32px;color:#fff;">3. Ethical Design</h3>
+<p style="font-size:24px;color:rgba(255,255,255,0.9);">Demand technology built for wellbeing, not addiction</p>
+</div>
+<div class="card card-accent" style="padding:40px;">
+<h3 style="font-size:32px;color:#fff;">4. Policy & Regulation</h3>
+<p style="font-size:24px;color:rgba(255,255,255,0.9);">Laws that protect people's rights in the digital age</p>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 23: Intentional Use -->
+<section class="slide" data-script="Intentional use means being deliberate. Hindi ka lang basta-basta mag-open ng phone. Ask yourself: why am I opening this? What do I need? Set screen time limits. Curate your feed. Be the master of your tech, not its slave.">
+<span class="section-num">07</span>
+<span class="eyebrow reveal d1">Pillar 1</span>
+<h2 class="reveal d2" style="margin-top:20px;">Intentional Technology Use</h2>
+<div class="card reveal d3" style="margin-top:40px;">
+<h3 style="font-size:30px;color:var(--accent);margin-bottom:20px;">Practical Steps:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:28px;margin-bottom:16px;">⏰ Set screen time limits (Digital Wellbeing / Screen Time)</li>
+<li style="font-size:28px;margin-bottom:16px;">🔕 Turn off non-essential notifications</li>
+<li style="font-size:28px;margin-bottom:16px;">📵 Phone-free zones (bedroom, dining table)</li>
+<li style="font-size:28px;margin-bottom:16px;">🧹 Curate feeds: unfollow what drains you</li>
+<li style="font-size:28px;">🎯 Ask: "Am I using this tool, or is it using me?"</li>
+</ul>
+</div>
+</section>
+
+<!-- SLIDE 24: Maslow + Tech -->
+<section class="slide" data-script="Let me connect this to Maslow's Hierarchy. Tech can help sa every level: physiological through apps for food and shelter, safety through security systems, belonging through social media, esteem through professional platforms, at self-actualization through learning tools. Pero it can also disrupt each level.">
+<span class="section-num">08</span>
+<span class="eyebrow reveal d1">Theory Connection</span>
+<h2 class="reveal d2" style="margin-top:20px;">Maslow's Hierarchy × Technology</h2>
+<div class="reveal d3" style="margin-top:30px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+<div class="card" style="width:400px;padding:20px;text-align:center;background:linear-gradient(135deg,#1e3a5f,#2a5298);">
+<p style="font-size:22px;color:#fff;">🌟 Self-Actualization<br><span style="font-size:18px;">AI tutors, creative tools, MOOCs</span></p>
+</div>
+<div class="card" style="width:520px;padding:20px;text-align:center;">
+<p style="font-size:22px;">🏆 Esteem<br><span style="font-size:18px;">LinkedIn, portfolios, online recognition</span></p>
+</div>
+<div class="card" style="width:640px;padding:20px;text-align:center;">
+<p style="font-size:22px;">❤️ Belonging<br><span style="font-size:18px;">Social media, video calls, communities</span></p>
+</div>
+<div class="card" style="width:760px;padding:20px;text-align:center;">
+<p style="font-size:22px;">🔒 Safety<br><span style="font-size:18px;">Smart security, emergency alerts, SOS features</span></p>
+</div>
+<div class="card" style="width:880px;padding:20px;text-align:center;">
+<p style="font-size:22px;">🍞 Physiological<br><span style="font-size:18px;">Food delivery, shelter apps, health monitors</span></p>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 25: Capability Approach -->
+<section class="slide" data-script="Another framework is Amartya Sen's Capability Approach. Ang idea dito is that flourishing isn't about what you HAVE, but what you're ABLE to do and be. Technology should expand your capabilities, your freedoms, your options in life.">
+<span class="section-num">08</span>
+<span class="eyebrow reveal d1">Philosophical Framework</span>
+<h2 class="reveal d2" style="margin-top:20px;">Amartya Sen's Capability Approach</h2>
+<div class="card reveal d3" style="margin-top:40px;">
+<h3 style="font-size:36px;color:var(--accent);margin-bottom:24px;text-align:center;">"Flourishing = Freedom to do and to be"</h3>
+<div class="grid-2" style="margin-top:30px;">
+<div>
+<h3 style="font-size:26px;color:var(--accent);margin-bottom:12px;">Capabilities (Freedoms)</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:24px;margin-bottom:10px;">• To be educated</li>
+<li style="font-size:24px;margin-bottom:10px;">• To be healthy</li>
+<li style="font-size:24px;margin-bottom:10px;">• To participate in society</li>
+<li style="font-size:24px;">• To express oneself</li>
+</ul>
+</div>
+<div>
+<h3 style="font-size:26px;color:var(--accent);margin-bottom:12px;">Tech's Role</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:24px;margin-bottom:10px;">• Should EXPAND capabilities</li>
+<li style="font-size:24px;margin-bottom:10px;">• Not create new dependencies</li>
+<li style="font-size:24px;margin-bottom:10px;">• Accessible to all, not just elites</li>
+<li style="font-size:24px;">• Empower, not control</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 26: Case Study - Digital Divide -->
+<section class="slide" data-script="Case study: the Digital Divide. Sa Philippines, around 40% pa rin ng population ang walang reliable internet access. Ibig sabihin, ang benefits ng technology na na-discuss natin kanina, hindi pantay-pantay ang distribution. The rich get richer in capabilities.">
+<span class="section-num">09</span>
+<span class="eyebrow reveal d1">Case Study</span>
+<h2 class="reveal d2" style="margin-top:20px;">The Digital Divide in the Philippines</h2>
+<div class="card reveal d3" style="margin-top:40px;">
+<div class="grid-2">
+<div>
+<div class="stat" style="font-size:80px;color:#ff4444;">~40%</div>
+<div class="stat-label">Filipinos without reliable internet access</div>
+<p style="font-size:24px;margin-top:20px;color:rgba(232,237,245,0.7);">Rural areas, island provinces most affected</p>
+</div>
+<div>
+<h3 style="font-size:26px;color:var(--accent);margin-bottom:16px;">Impact on Flourishing:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:24px;margin-bottom:12px;">📚 Can't access online education</li>
+<li style="font-size:24px;margin-bottom:12px;">🏥 No telemedicine</li>
+<li style="font-size:24px;margin-bottom:12px;">💼 No remote work opportunities</li>
+<li style="font-size:24px;">🏦 No digital financial services</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 27: Responsible Innovation -->
+<section class="slide" data-script="So what's the solution? Responsible Innovation. This means designing and deploying technology with human flourishing as the GOAL, not just profit. Companies should ask: does this make people's lives better, or just more addictive?">
+<span class="section-num">10</span>
+<span class="eyebrow reveal d1">The Way Forward</span>
+<h2 class="reveal d2" style="margin-top:20px;">Responsible Innovation</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<h3 style="font-size:32px;color:var(--accent);margin-bottom:24px;text-align:center;">The Design Question:</h3>
+<p style="font-size:40px;text-align:center;font-family:var(--font-display);">"Does this technology help people <span style="color:var(--accent);">flourish</span>,<br>or just keep them <span style="color:#ff4444;">engaged</span>?"</p>
+</div>
+</section>
+
+<!-- SLIDE 28: Examples of Ethical Tech -->
+<section class="slide" data-script="May mga companies na naman na gumagawa ng ethical tech. Example: Forest app na nag-he-help sa focus, Headspace for mental health, Wikipedia for free knowledge. These are designed for flourishing, hindi for addiction.">
+<span class="section-num">10</span>
+<span class="eyebrow reveal d1">Positive Examples</span>
+<h2 class="reveal d2" style="margin-top:20px;">Tech Designed for Flourishing</h2>
+<div class="grid-3 reveal d3" style="margin-top:40px;">
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:50px;margin-bottom:12px;">🌲</div>
+<h3 style="font-size:24px;">Forest App</h3>
+<p style="font-size:20px;">Gamifies focus, plants real trees</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:50px;margin-bottom:12px;">🧘</div>
+<h3 style="font-size:24px;">Headspace</h3>
+<p style="font-size:20px;">Meditation & mindfulness</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:50px;margin-bottom:12px;">📖</div>
+<h3 style="font-size:24px;">Wikipedia</h3>
+<p style="font-size:20px;">Free knowledge, no ads</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:50px;margin-bottom:12px;">🔓</div>
+<h3 style="font-size:24px;">Signal</h3>
+<p style="font-size:20px;">Privacy-first messaging</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:50px;margin-bottom:12px;">🐧</div>
+<h3 style="font-size:24px;">Linux/Open Source</h3>
+<p style="font-size:20px;">Community-built software</p>
+</div>
+<div class="card" style="text-align:center;padding:30px;">
+<div style="font-size:50px;margin-bottom:12px;">🎓</div>
+<h3 style="font-size:24px;">Khan Academy</h3>
+<p style="font-size:20px;">Free world-class education</p>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 29: Student Reflection -->
+<section class="slide" data-script="Now, I want you to reflect. Think about your own tech use. Ano ang mga tech tools na talagang naghe-help sa inyo to flourish? At ano naman ang mga nag-hi-hinder? Be honest with yourselves.">
+<span class="section-num">11</span>
+<span class="eyebrow reveal d1">Reflection Activity</span>
+<h2 class="reveal d2" style="margin-top:20px;">Personal Tech Audit 🔍</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<h3 style="font-size:30px;color:var(--accent);margin-bottom:24px;">Ask Yourself:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:30px;margin-bottom:20px;">1️⃣ What 3 apps/tools help me FLOURISH?</li>
+<li style="font-size:30px;margin-bottom:20px;">2️⃣ What 3 apps/tools HINDER my flourishing?</li>
+<li style="font-size:30px;margin-bottom:20px;">3️⃣ How many hours daily do I spend on non-productive tech?</li>
+<li style="font-size:30px;">4️⃣ What would I DO with that time if tech wasn't there?</li>
+</ul>
+</div>
+</section>
+
+<!-- SLIDE 30: Meme - Screen Time -->
+<section class="slide" style="justify-content:center;align-items:center;" data-script="Another meme. Ang screen time report natin, parang report card na ayaw natin makita. Seven hours average daily screen time ng Filipinos! Pangatlo tayo sa mundo!">
+<div class="meme-card reveal d1" style="max-width:900px;">
+<div class="meme-emoji">📊😰📱</div>
+<div class="meme-text" style="font-size:36px;">Phone: "Your daily screen time is 7 hours"<br><br>Me: "I don't need this kind of negativity in my life"</div>
+<p style="font-size:24px;color:rgba(232,237,245,0.5);margin-top:20px;">Philippines: 3rd highest screen time globally 🇵🇭💀</p>
+</div>
+</section>
+
+<!-- SLIDE 31: Flourishing Metrics -->
+<section class="slide" data-script="How do we measure flourishing? Hindi lang GDP o income. May mga metrics like Human Development Index, World Happiness Report, at PERMA model ni Seligman. These measure what really matters: health, education, meaning, relationships.">
+<span class="section-num">12</span>
+<span class="eyebrow reveal d1">Measuring Flourishing</span>
+<h2 class="reveal d2" style="margin-top:20px;">Beyond GDP: Flourishing Metrics</h2>
+<div class="grid-3 reveal d3" style="margin-top:40px;">
+<div class="card" style="padding:30px;text-align:center;">
+<h3 style="font-size:24px;color:var(--accent);margin-bottom:12px;">HDI</h3>
+<p style="font-size:20px;">Human Development Index: health, education, income</p>
+<p style="font-size:18px;color:rgba(232,237,245,0.5);margin-top:8px;">PH rank: 116/193</p>
+</div>
+<div class="card" style="padding:30px;text-align:center;">
+<h3 style="font-size:24px;color:var(--accent);margin-bottom:12px;">WHR</h3>
+<p style="font-size:20px;">World Happiness Report: life satisfaction, freedom, generosity</p>
+<p style="font-size:18px;color:rgba(232,237,245,0.5);margin-top:8px;">PH rank: 53/143</p>
+</div>
+<div class="card" style="padding:30px;text-align:center;">
+<h3 style="font-size:24px;color:var(--accent);margin-bottom:12px;">PERMA</h3>
+<p style="font-size:20px;">Positive Emotion, Engagement, Relationships, Meaning, Achievement</p>
+<p style="font-size:18px;color:rgba(232,237,245,0.5);margin-top:8px;">Seligman's model</p>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 32: PERMA Deep Dive -->
+<section class="slide" data-script="Let's go deeper sa PERMA model. Ito ang scientifically-validated framework para sa flourishing ni Martin Seligman. Five elements: Positive emotions, Engagement, Relationships, Meaning, at Achievement. Tanong: ang tech ba ay tumutulong o humihindrance sa bawat element?">
+<span class="section-num">12</span>
+<span class="eyebrow reveal d1">Seligman's PERMA Model</span>
+<h2 class="reveal d2" style="margin-top:20px;">PERMA × Technology</h2>
+<div class="reveal d3" style="margin-top:30px;">
+<table style="width:100%;border-collapse:separate;border-spacing:0 12px;">
+<tr>
+<td style="background:var(--card);padding:20px 30px;border-radius:12px 0 0 12px;font-size:24px;font-weight:700;color:var(--accent);width:180px;">P - Positive Emotion</td>
+<td style="background:var(--card);padding:20px;font-size:22px;">✅ Entertainment, music apps</td>
+<td style="background:var(--card);padding:20px;border-radius:0 12px 12px 0;font-size:22px;">❌ Comparison, doomscrolling</td>
+</tr>
+<tr>
+<td style="background:var(--card);padding:20px 30px;border-radius:12px 0 0 12px;font-size:24px;font-weight:700;color:var(--accent);">E - Engagement</td>
+<td style="background:var(--card);padding:20px;font-size:22px;">✅ Creative tools, games (flow)</td>
+<td style="background:var(--card);padding:20px;border-radius:0 12px 12px 0;font-size:22px;">❌ Passive scrolling kills flow</td>
+</tr>
+<tr>
+<td style="background:var(--card);padding:20px 30px;border-radius:12px 0 0 12px;font-size:24px;font-weight:700;color:var(--accent);">R - Relationships</td>
+<td style="background:var(--card);padding:20px;font-size:22px;">✅ Video calls, messaging</td>
+<td style="background:var(--card);padding:20px;border-radius:0 12px 12px 0;font-size:22px;">❌ Shallow connections, ghosting</td>
+</tr>
+<tr>
+<td style="background:var(--card);padding:20px 30px;border-radius:12px 0 0 12px;font-size:24px;font-weight:700;color:var(--accent);">M - Meaning</td>
+<td style="background:var(--card);padding:20px;font-size:22px;">✅ Volunteer platforms, causes</td>
+<td style="background:var(--card);padding:20px;border-radius:0 12px 12px 0;font-size:22px;">❌ Nihilism from info overload</td>
+</tr>
+<tr>
+<td style="background:var(--card);padding:20px 30px;border-radius:12px 0 0 12px;font-size:24px;font-weight:700;color:var(--accent);">A - Achievement</td>
+<td style="background:var(--card);padding:20px;font-size:22px;">✅ Goal-tracking, online courses</td>
+<td style="background:var(--card);padding:20px;border-radius:0 12px 12px 0;font-size:22px;">❌ Procrastination, distraction</td>
+</tr>
+</table>
+</div>
+</section>
+
+<!-- SLIDE 33: Filipino Concept of Flourishing -->
+<section class="slide" data-script="Sa Filipino context naman, ang concept ng flourishing ay connected sa ating values: family, community, faith, at bayanihan. Ang technology should support these values, hindi mag-erode. Pag nag-gather ang family, lahat nakayuko sa phone, that's not flourishing.">
+<span class="section-num">13</span>
+<span class="eyebrow reveal d1">Filipino Perspective</span>
+<h2 class="reveal d2" style="margin-top:20px;">Flourishing, Filipino-Style 🇵🇭</h2>
+<div class="grid-2 reveal d3" style="margin-top:40px;">
+<div class="card" style="padding:40px;">
+<h3 style="font-size:28px;color:var(--accent);margin-bottom:16px;">Core Filipino Values</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:26px;margin-bottom:12px;">👨‍👩‍👧‍👦 Pamilya (Family-centered)</li>
+<li style="font-size:26px;margin-bottom:12px;">🤝 Bayanihan (Communal spirit)</li>
+<li style="font-size:26px;margin-bottom:12px;">🙏 Pananampalataya (Faith)</li>
+<li style="font-size:26px;margin-bottom:12px;">😊 Pakikipagkapwa (Shared humanity)</li>
+<li style="font-size:26px;">🎉 Kasiyahan (Joy in togetherness)</li>
+</ul>
+</div>
+<div class="card" style="padding:40px;">
+<h3 style="font-size:28px;color:var(--accent);margin-bottom:16px;">Tech Should Support:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:26px;margin-bottom:12px;">✅ OFW family connections</li>
+<li style="font-size:26px;margin-bottom:12px;">✅ Community organizing</li>
+<li style="font-size:26px;margin-bottom:12px;">✅ Disaster response coordination</li>
+<li style="font-size:26px;margin-bottom:12px;">❌ Not replace face-to-face bonding</li>
+<li style="font-size:26px;">❌ Not isolate individuals from community</li>
+</ul>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 34: Future Vision -->
+<section class="slide" data-script="Looking forward, ano ang vision natin for a world where tech and flourishing coexist? Imagine: AI na tumutulong sa personalized education, renewable energy solving climate change, biotech curing diseases, pero all with ethical guardrails. That's the future we should build.">
+<span class="section-num">14</span>
+<span class="eyebrow reveal d1">Looking Forward</span>
+<h2 class="reveal d2" style="margin-top:20px;">A Vision: Tech FOR Flourishing</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<div class="grid-2">
+<div>
+<h3 style="font-size:28px;color:var(--accent);margin-bottom:20px;">The World We Want:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:26px;margin-bottom:14px;">🎓 AI-personalized education for all</li>
+<li style="font-size:26px;margin-bottom:14px;">🌍 Clean energy via tech innovation</li>
+<li style="font-size:26px;margin-bottom:14px;">🧬 Diseases cured by biotech</li>
+<li style="font-size:26px;margin-bottom:14px;">🤖 Automation freeing us for creative work</li>
+<li style="font-size:26px;">🌐 Digital rights for everyone</li>
+</ul>
+</div>
+<div>
+<h3 style="font-size:28px;color:#ff4444;margin-bottom:20px;">What We Must Avoid:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:26px;margin-bottom:14px;">⚠️ Tech monopoly by the few</li>
+<li style="font-size:26px;margin-bottom:14px;">⚠️ Surveillance states</li>
+<li style="font-size:26px;margin-bottom:14px;">⚠️ Algorithmic manipulation</li>
+<li style="font-size:26px;margin-bottom:14px;">⚠️ Loss of human agency</li>
+<li style="font-size:26px;">⚠️ Environmental destruction for tech</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 35: Quiz Time -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="Quiz time na! Let's see kung naintindihan niyo ang lessons natin today. Ready?">
+<div class="glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+<h1 class="reveal-scale d1" style="font-size:120px;color:var(--accent);">QUIZ TIME 🧠</h1>
+<p class="reveal d2" style="font-size:36px;margin-top:20px;color:rgba(232,237,245,0.7);">5 Questions · Let's go!</p>
+</section>
+
+<!-- SLIDE 36: Quiz Q1 -->
+<section class="slide" data-script="Question 1: Ano ang eudaimonia? Ito ang Aristotelian term for human flourishing. Hindi lang happiness, but living well and fulfilling one's purpose." data-answer="B) Living well and fulfilling one's purpose (Aristotle's concept of human flourishing)">
+<span class="section-num">Q1</span>
+<span class="eyebrow reveal d1">Quiz</span>
+<h2 class="reveal d2" style="margin-top:20px;">What is "Eudaimonia"?</h2>
+<div class="reveal d3" style="margin-top:40px;">
+<div class="quiz-option">A) A Greek word meaning "happiness only"</div>
+<div class="quiz-option">B) Living well and fulfilling one's purpose</div>
+<div class="quiz-option">C) The pursuit of wealth and material comfort</div>
+<div class="quiz-option">D) A type of ancient Greek technology</div>
+</div>
+<div class="quiz-answer">✅ <strong>B) Living well and fulfilling one's purpose</strong> — Aristotle's concept of human flourishing that goes beyond mere pleasure or happiness.</div>
+</section>
+
+<!-- SLIDE 37: Quiz Q2 -->
+<section class="slide" data-script="Question 2: Alin sa mga ito ang example ng tech na HINDERS flourishing? Ang answer ay infinite scroll design. It's specifically designed para ma-addict ka at i-steal ang attention mo." data-answer="C) Infinite scroll design on social media (designed to steal attention and create addiction)">
+<span class="section-num">Q2</span>
+<span class="eyebrow reveal d1">Quiz</span>
+<h2 class="reveal d2" style="margin-top:20px;">Which is an example of tech HINDERING flourishing?</h2>
+<div class="reveal d3" style="margin-top:40px;">
+<div class="quiz-option">A) Khan Academy providing free education</div>
+<div class="quiz-option">B) Telemedicine connecting rural patients to doctors</div>
+<div class="quiz-option">C) Infinite scroll design on social media</div>
+<div class="quiz-option">D) GCash enabling financial inclusion</div>
+</div>
+<div class="quiz-answer">✅ <strong>C) Infinite scroll design on social media</strong> — Intentionally designed to steal attention and create addictive behavior patterns.</div>
+</section>
+
+<!-- SLIDE 38: Quiz Q3 -->
+<section class="slide" data-script="Question 3: Ano ang PERMA model? Ito ang framework ni Martin Seligman para sa flourishing. Positive emotions, Engagement, Relationships, Meaning, Achievement." data-answer="A) Positive Emotion, Engagement, Relationships, Meaning, Achievement — Seligman's scientific model of flourishing">
+<span class="section-num">Q3</span>
+<span class="eyebrow reveal d1">Quiz</span>
+<h2 class="reveal d2" style="margin-top:20px;">What does PERMA stand for?</h2>
+<div class="reveal d3" style="margin-top:40px;">
+<div class="quiz-option">A) Positive Emotion, Engagement, Relationships, Meaning, Achievement</div>
+<div class="quiz-option">B) Progress, Education, Resources, Money, Access</div>
+<div class="quiz-option">C) Personal, Economic, Religious, Material, Academic</div>
+<div class="quiz-option">D) Passion, Energy, Resilience, Mindfulness, Ambition</div>
+</div>
+<div class="quiz-answer">✅ <strong>A)</strong> — Martin Seligman's scientifically validated framework for measuring human flourishing.</div>
+</section>
+
+<!-- SLIDE 39: Quiz Q4 -->
+<section class="slide" data-script="Question 4: Sino si Amartya Sen at ano ang Capability Approach niya? Si Sen ay Nobel laureate economist na nagsabi na flourishing is about what people are ABLE to do and be, hindi about what they have." data-answer="B) Flourishing is measured by what people are free to do and be, not what they possess">
+<span class="section-num">Q4</span>
+<span class="eyebrow reveal d1">Quiz</span>
+<h2 class="reveal d2" style="margin-top:20px;">What is Amartya Sen's Capability Approach?</h2>
+<div class="reveal d3" style="margin-top:40px;">
+<div class="quiz-option">A) Technology should be given equally to everyone</div>
+<div class="quiz-option">B) Flourishing = freedom to do and to be, not what you possess</div>
+<div class="quiz-option">C) GDP is the best measure of human progress</div>
+<div class="quiz-option">D) Capabilities are determined by your social class</div>
+</div>
+<div class="quiz-answer">✅ <strong>B)</strong> — Sen argues that development and flourishing should be measured by the capabilities (freedoms) people have, not just resources.</div>
+</section>
+
+<!-- SLIDE 40: Quiz Q5 -->
+<section class="slide" data-script="Last question: Ano ang digital divide at bakit ito hindrance sa flourishing? Ang digital divide is the gap between those who have access to technology and those who don't. Sa Philippines, about 40% pa rin ang walang reliable internet." data-answer="D) The gap between those with and without tech access, preventing equal flourishing opportunities">
+<span class="section-num">Q5</span>
+<span class="eyebrow reveal d1">Quiz</span>
+<h2 class="reveal d2" style="margin-top:20px;">Why is the Digital Divide a threat to flourishing?</h2>
+<div class="reveal d3" style="margin-top:40px;">
+<div class="quiz-option">A) It makes internet too expensive for companies</div>
+<div class="quiz-option">B) It only affects people in other countries</div>
+<div class="quiz-option">C) It's a temporary problem that will fix itself</div>
+<div class="quiz-option">D) It prevents equal access to tech-enabled opportunities</div>
+</div>
+<div class="quiz-answer">✅ <strong>D)</strong> — ~40% of Filipinos lack reliable internet, meaning they can't access education, healthcare, or economic opportunities that tech provides.</div>
+</section>
+
+<!-- SLIDE 41: Key Takeaways -->
+<section class="slide" data-script="Alright, let's wrap up. Here are your key takeaways. Remember: technology is a tool. It's not inherently good or bad. It depends on how we design it, use it, and regulate it. The goal should always be human flourishing.">
+<span class="section-num">15</span>
+<span class="eyebrow reveal d1">Summary</span>
+<h2 class="reveal d2" style="margin-top:20px;">Key Takeaways 🎯</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<ul style="list-style:none;padding:0;">
+<li style="font-size:30px;margin-bottom:20px;">1️⃣ Human flourishing is multi-dimensional (PERMA, Maslow, Capability)</li>
+<li style="font-size:30px;margin-bottom:20px;">2️⃣ Technology ENABLES flourishing: education, health, connection, creativity</li>
+<li style="font-size:30px;margin-bottom:20px;">3️⃣ Technology HINDERS flourishing: addiction, isolation, displacement, surveillance</li>
+<li style="font-size:30px;margin-bottom:20px;">4️⃣ Balance requires: intentional use, digital literacy, ethical design, policy</li>
+<li style="font-size:30px;">5️⃣ Filipino flourishing centers on family, community, and shared humanity</li>
+</ul>
+</div>
+</section>
+
+<!-- SLIDE 42: Closing -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="That's it for today! Next session, we'll dive into the philosophical concept of 'The Good Life' and how different thinkers throughout history have defined it. Start thinking: what does the good life mean to YOU? See you next time!">
+<div class="glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+<span class="eyebrow reveal d1">Next Session Preview</span>
+<h1 class="reveal-scale d2" style="font-size:80px;">W17S1: <span style="color:var(--accent);">The Good Life</span></h1>
+<p class="reveal d3" style="margin-top:30px;font-size:32px;color:rgba(232,237,245,0.7);">What does it mean to live well? Philosophical perspectives await.</p>
+<p class="reveal d4" style="margin-top:20px;font-size:24px;color:rgba(232,237,245,0.4);">Think about: What is YOUR definition of "the good life"?</p>
+</section>
+
+<!-- SCRIPT VIEWER -->
+<div class="script-viewer" id="scriptViewer">
+<h4>🎤 Teacher Script</h4>
+<div class="script-content" id="scriptContent"></div>
+</div>
+
+<!-- ANSWER KEY OVERLAY -->
+<div class="answer-overlay" id="answerOverlay">
+<h2>🔑 Answer Key</h2>
+<div class="answer-item"><strong>Q1:</strong> B) Living well and fulfilling one's purpose (Aristotle's eudaimonia)</div>
+<div class="answer-item"><strong>Q2:</strong> C) Infinite scroll design on social media (designed to steal attention)</div>
+<div class="answer-item"><strong>Q3:</strong> A) Positive Emotion, Engagement, Relationships, Meaning, Achievement</div>
+<div class="answer-item"><strong>Q4:</strong> B) Flourishing = freedom to do and to be, not what you possess</div>
+<div class="answer-item"><strong>Q5:</strong> D) It prevents equal access to tech-enabled opportunities for flourishing</div>
+</div>
+
+<script>
+// Teacher Script Viewer (T key)
+let scriptOpen = false;
+const scriptViewer = document.getElementById('scriptViewer');
+const scriptContent = document.getElementById('scriptContent');
+
+function updateScript() {
+  const currentSlide = document.querySelector('.slide[aria-current="true"]') || document.querySelector('.slide');
+  if (currentSlide) {
+    const script = currentSlide.getAttribute('data-script') || 'No script for this slide.';
+    scriptContent.textContent = script;
+  }
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 't' || e.key === 'T') {
+    if (!e.ctrlKey && !e.shiftKey && !e.altKey) {
+      scriptOpen = !scriptOpen;
+      scriptViewer.classList.toggle('active', scriptOpen);
+      if (scriptOpen) updateScript();
+    }
+  }
+  // Answer Key (Ctrl+Shift+D)
+  if (e.key === 'D' && e.ctrlKey && e.shiftKey) {
+    e.preventDefault();
+    const overlay = document.getElementById('answerOverlay');
+    overlay.classList.toggle('active');
+  }
+  // Quiz answer reveal on click
+  if (e.key === 'r' || e.key === 'R') {
+    const currentSlide = document.querySelector('.slide[aria-current="true"]');
+    if (currentSlide) {
+      const answer = currentSlide.querySelector('.quiz-answer');
+      if (answer) answer.style.display = answer.style.display === 'block' ? 'none' : 'block';
+    }
+  }
+});
+
+// Update script when slide changes
+const observer = new MutationObserver(function() {
+  if (scriptOpen) updateScript();
+});
+observer.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['aria-current'] });
+
+// Close answer overlay on click
+document.getElementById('answerOverlay').addEventListener('click', function() {
+  this.classList.remove('active');
+});
+</script>
+</body>
+</html>

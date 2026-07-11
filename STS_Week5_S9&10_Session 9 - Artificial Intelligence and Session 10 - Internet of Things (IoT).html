@@ -1,0 +1,1511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- skill:chassis -->
+<style>
+/* =====================================================
+   PRESENTATION CHASSIS — style-invariant base styles
+   Fixed 1920×1080 canvas scaled to fit any viewport.
+   Customize colors, fonts, and chrome via :root tokens.
+   ===================================================== */
+
+/* ---------- Universal reset ---------- */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ---------- Theme tokens (override in your deck's CSS) ---------- */
+:root {
+    color-scheme: light;
+
+    --background:      #ffffff;
+    --foreground:      #111111;
+    --card:            #f5f5f5;
+    --card-foreground: var(--foreground);
+    --accent:          #c94a3d;
+    --accent-foreground: #ffffff;
+
+    --muted-foreground: color-mix(in srgb, var(--foreground) 55%, transparent);
+    --border:           color-mix(in srgb, var(--foreground) 12%, transparent);
+
+    --font-display: Georgia, serif;
+    --font-body: -apple-system, system-ui, sans-serif;
+    --font-mono: ui-monospace, monospace;
+
+    /* Reveal animation */
+    --reveal-duration: 0.8s;
+    --reveal-ease:     cubic-bezier(0.16, 1, 0.3, 1);
+    --reveal-distance: 28px;
+
+    /* Chrome (nav dots, keyboard hint) */
+    --nav-dot-size: 9px;
+    --nav-dot-radius: 50%;
+    --nav-dot-color: var(--foreground);
+    --nav-dot-active-color: var(--accent);
+    --nav-dot-opacity: 0.4;
+}
+
+/* ---------- Viewport lock + scroll snap ---------- */
+html, body { height: 100%; overflow-x: hidden; }
+html {
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+}
+
+html, body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+/* ---------- Type scale ----------
+   Fixed px sizes on a 1920×1080 canvas. The canvas is scaled to fit
+   any viewport via transform, so these sizes are absolute within the
+   design surface — no responsive units needed. */
+body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body);
+    font-size: 36px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1 { font-size: 120px; line-height: 1.05; letter-spacing: -0.02em; }
+h2 { font-size: 64px; line-height: 1.1; letter-spacing: -0.01em; }
+h3 { font-size: 44px; line-height: 1.2; }
+.eyebrow {
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1.3;
+}
+
+ul, ol { padding-left: 48px; display: flex; flex-direction: column; gap: 24px; }
+li::marker { color: var(--accent); }
+
+/* ---------- Slide structure ----------
+   .slide is the authored 1920×1080 artboard.
+   The chassis wraps it in viewport + scale layers at runtime. */
+.slide-viewport {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: block;
+    position: relative;
+    background: var(--background);
+    isolation: isolate;
+    z-index: 1;
+}
+
+.slide-scale {
+    width: 1920px;
+    height: 1080px;
+    transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+    transform-origin: center center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+}
+
+.slide {
+    width: 1920px;
+    height: 1080px;
+    padding: 80px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 60px;
+    position: relative;
+    background: transparent;
+}
+
+
+/* ---------- Image defaults ---------- */
+img, .image-container {
+    max-width: 100%;
+    max-height: 540px;
+    object-fit: contain;
+}
+
+/* ---------- Reveal primitives ----------
+   Driven by chassis.js via the Web Animations API, not CSS transitions.
+   Put .reveal* or .step on ANY element — author CSS on the same element
+   (opacity, transform, transition, filter) never conflicts, because
+   WAAPI animations live in the animation cascade origin and win over
+   normal author declarations. The .dN stagger classes below still apply
+   to theme-authored CSS animations via animation-delay.
+
+   Variants: .reveal (fade + up), .reveal-left, .reveal-right,
+   .reveal-scale, .reveal-blur. .step stays hidden until the user
+   advances forward. Don't combine .step with .reveal* on the same
+   element. */
+
+/* FOUC guard: hide reveals until chassis.js marks the document ready. */
+:root:not(.reveals-ready) .reveal,
+:root:not(.reveals-ready) .reveal-left,
+:root:not(.reveals-ready) .reveal-right,
+:root:not(.reveals-ready) .reveal-scale,
+:root:not(.reveals-ready) .reveal-blur,
+:root:not(.reveals-ready) .step {
+    opacity: 0;
+}
+:root:not(.reveals-ready) .reveal-blur { filter: blur(10px); }
+
+/* ---------- Stagger delays (.d1 … .d8) ---------- */
+.slide.visible .d1 { transition-delay: 0.10s; animation-delay: 0.10s; }
+.slide.visible .d2 { transition-delay: 0.25s; animation-delay: 0.25s; }
+.slide.visible .d3 { transition-delay: 0.40s; animation-delay: 0.40s; }
+.slide.visible .d4 { transition-delay: 0.55s; animation-delay: 0.55s; }
+.slide.visible .d5 { transition-delay: 0.70s; animation-delay: 0.70s; }
+.slide.visible .d6 { transition-delay: 0.85s; animation-delay: 0.85s; }
+.slide.visible .d7 { transition-delay: 1.00s; animation-delay: 1.00s; }
+.slide.visible .d8 { transition-delay: 1.15s; animation-delay: 1.15s; }
+
+/* ---------- Nav dots ----------
+   Default: right-center (vertical stack on right edge).
+   Override with <body data-nav="bottom | top-right | hidden">. */
+.nav-dots {
+    position: fixed;
+    right: clamp(0.6rem, 1.5vw, 1.4rem);
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.5rem, 1vh, 0.8rem);
+    z-index: 50;
+}
+
+body[data-nav="bottom"] .nav-dots {
+    right: auto;
+    top: auto;
+    bottom: clamp(1rem, 2.5vh, 2rem);
+    left: 50%;
+    transform: translateX(-50%);
+    flex-direction: row;
+}
+
+body[data-nav="top-right"] .nav-dots {
+    right: clamp(1rem, 2.5vw, 2rem);
+    top: clamp(1rem, 2.5vh, 2rem);
+    transform: none;
+    flex-direction: row;
+}
+
+body[data-nav="hidden"] .nav-dots { display: none; }
+
+body[data-nav="bottom"] .keyboard-hint {
+    left: clamp(1rem, 2vw, 1.5rem);
+    transform: none;
+}
+
+.nav-dots button {
+    width: var(--nav-dot-size);
+    height: var(--nav-dot-size);
+    border-radius: var(--nav-dot-radius);
+    border: 1.5px solid var(--nav-dot-color);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.3s ease;
+    opacity: var(--nav-dot-opacity);
+}
+.nav-dots button:hover { opacity: 0.85; transform: scale(1.15); }
+.nav-dots button:focus-visible {
+    outline: 2px solid var(--nav-dot-active-color);
+    outline-offset: 3px;
+    opacity: 1;
+}
+.nav-dots button.active {
+    background: var(--nav-dot-active-color);
+    border-color: var(--nav-dot-active-color);
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+/* ---------- Keyboard hint ---------- */
+.keyboard-hint {
+    position: fixed;
+    bottom: clamp(0.6rem, 1.2vh, 1rem);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted-foreground);
+    z-index: 50;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.keyboard-hint kbd {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.9em;
+    padding: 0.05em 0.4em;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--background);
+    margin: 0 0.15em;
+}
+
+/* ---------- Credit line ---------- */
+.chassis-credit {
+    position: fixed;
+    bottom: clamp(0.6rem, 1.2vh, 1rem);
+    left: clamp(1rem, 2vw, 1.5rem);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted-foreground);
+    letter-spacing: 0.02em;
+    z-index: 50;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.chassis-credit .chassis-credit-emoji {
+    font-style: normal;
+    margin: 0 0.15em;
+}
+
+body[data-nav="bottom"] .chassis-credit {
+    left: auto;
+    right: clamp(1rem, 2vw, 1.5rem);
+}
+
+/* ---------- Custom cursor ---------- */
+.chassis-cursor {
+    position: fixed;
+    top: 0; left: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: var(--accent);
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    will-change: transform;
+}
+.chassis-cursor.visible { opacity: 1; }
+body.artifact-editor-editing .chassis-cursor { display: none; }
+
+@media (hover: none) {
+    .chassis-cursor { display: none; }
+}
+
+body.chassis-cursor-active:not(.artifact-editor-editing),
+body.chassis-cursor-active:not(.artifact-editor-editing) * { cursor: none; }
+
+/* ---------- Opt-outs ---------- */
+body[data-no-chrome] .nav-dots,
+body[data-no-chrome] .keyboard-hint,
+body[data-no-chrome] .chassis-credit,
+body[data-no-chrome] .chassis-cursor,
+body[data-no-chrome] .artifact-editor-toggle { display: none; }
+
+:fullscreen .keyboard-hint,
+:fullscreen .chassis-credit,
+:fullscreen .artifact-editor-toggle { display: none; }
+
+@media (hover: none) {
+    .keyboard-hint,
+    .chassis-credit { display: none; }
+}
+
+@media (max-width: 900px), (max-height: 560px) {
+    .nav-dots,
+    .keyboard-hint,
+    .chassis-credit,
+    .chassis-cursor { display: none; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.2s !important;
+    }
+    html { scroll-behavior: auto; }
+}
+
+/* ---------- Print (PDF export) ---------- */
+@media print {
+    .nav-dots, .keyboard-hint, .chassis-credit, .chassis-cursor { display: none !important; }
+    html, body { height: auto; overflow: visible; }
+    html { scroll-snap-type: none; }
+    .slide-viewport {
+        page-break-after: always;
+        break-after: page;
+        height: 100vh;
+    }
+    .slide-scale {
+        position: static !important;
+        transform: none !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+    .slide {
+        width: 100% !important;
+        height: auto !important;
+    }
+}
+
+</style>
+<script>
+/* =====================================================
+   PRESENTATION CHASSIS — slide controller
+   Auto-initializes on DOMContentLoaded.
+   Exposes window.slides for programmatic control.
+   ===================================================== */
+(function () {
+    'use strict';
+
+    const REVEAL_SELECTOR = '.reveal, .reveal-left, .reveal-right, .reveal-scale, .reveal-blur';
+    const STEP_SELECTOR = '.step';
+    const ALL_REVEAL_SELECTOR = REVEAL_SELECTOR + ', ' + STEP_SELECTOR;
+    const VIEWPORT_CLASS = 'slide-viewport';
+    const SCALE_CLASS = 'slide-scale';
+
+    function _detectLang() {
+        const param = new URLSearchParams(location.search).get('lang');
+        return (param || navigator.language || 'en').slice(0, 2).toLowerCase();
+    }
+
+    class SlidePresentation {
+        constructor() {
+            this.slides = Array.from(document.querySelectorAll('.slide'));
+            if (this.slides.length === 0) return;
+
+            // Ensure every slide has an id so hashes + anchor links work.
+            // Author-defined ids are preserved; the rest get slide-N (1-indexed).
+            this.slides.forEach((slide, idx) => {
+                if (!slide.id) slide.id = `slide-${idx + 1}`;
+            });
+            this.viewports = this._setupViewports();
+            this.scales = this.viewports.map((viewport) => viewport.querySelector(`.${SCALE_CLASS}`));
+
+            // Hide every reveal element BEFORE lifting the CSS FOUC guard.
+            // After this, .reveals-ready is on <html>, so CSS no longer hides
+            // reveals — inline styles keep them hidden until JS animates them.
+            this._setupReveals();
+
+            this.navDotsContainer = this._ensureNavDots();
+            this.keyboardHint = this._ensureKeyboardHint();
+            this.credit = this._ensureCredit();
+
+            this._setupCanvasScale();
+            this._setupIntersectionObserver();
+            this._setupKeyboardNav();
+            this._setupWheelNav();
+            this._setupTouchNav();
+            this._setupViewportSync();
+            this._buildNavDots();
+            this._setupHashNav();
+            this._setupCursor();
+            this._setupPrintSettling();
+
+            // If URL has a matching hash, start there; otherwise start at slide 0.
+            const initial = this._slideIndexFromHash(location.hash);
+            this.currentSlide = initial >= 0 ? initial : 0;
+            if (this.currentSlide !== 0) {
+                this._scrollToSlide(this.currentSlide, 'auto');
+            }
+            // Reveal initial slide immediately (observer may miss it on load).
+            const first = this.slides[this.currentSlide];
+            first.classList.add('visible');
+            this._playSlideReveals(first);
+            this._updateNavDots();
+        }
+
+        /* ---------- Viewport scaffolding ----------
+           Authors write .slide as the 1920×1080 artboard. The chassis wraps
+           that authored section in viewport and scale layers. */
+        _setupViewports() {
+            return this.slides.map((slide) => {
+                const existingScale = slide.parentElement?.classList.contains(SCALE_CLASS)
+                    ? slide.parentElement
+                    : null;
+                const existingViewport = existingScale?.parentElement?.classList.contains(VIEWPORT_CLASS)
+                    ? existingScale.parentElement
+                    : null;
+                if (existingViewport) {
+                    this._syncViewportBackground(slide, existingViewport);
+                    return existingViewport;
+                }
+
+                const viewport = document.createElement('div');
+                viewport.className = VIEWPORT_CLASS;
+                const scale = document.createElement('div');
+                scale.className = SCALE_CLASS;
+
+                slide.parentNode.insertBefore(viewport, slide);
+                viewport.appendChild(scale);
+                scale.appendChild(slide);
+                this._syncViewportBackground(slide, viewport);
+
+                return viewport;
+            });
+        }
+
+        _syncViewportBackground(slide, viewport) {
+            const style = getComputedStyle(slide);
+            const hasBackgroundImage = style.backgroundImage && style.backgroundImage !== 'none';
+            const hasBackgroundColor = !['rgba(0, 0, 0, 0)', 'transparent'].includes(style.backgroundColor);
+            if (hasBackgroundImage || hasBackgroundColor) {
+                viewport.style.background = style.background;
+            } else {
+                viewport.style.background = '';
+            }
+            slide.style.background = 'transparent';
+        }
+
+        /* ---------- DOM scaffolding (auto-inserted if missing) ---------- */
+        _ensureNavDots() {
+            let el = document.getElementById('navDots');
+            if (!el) {
+                el = document.createElement('nav');
+                el.id = 'navDots';
+                el.className = 'nav-dots';
+                el.setAttribute('aria-label', 'Slide navigation');
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        _ensureKeyboardHint() {
+            let el = document.querySelector('.keyboard-hint');
+            if (!el) {
+                const i18n = {
+                    en: { navigate: 'navigate', restart: 'restart', fullscreen: 'fullscreen' },
+                    es: { navigate: 'navegar',   restart: 'inicio',   fullscreen: 'fullscreen' },
+                    fr: { navigate: 'naviguer',  restart: 'début',    fullscreen: 'fullscreen' },
+                    de: { navigate: 'blättern',  restart: 'anfang',   fullscreen: 'vollbild' },
+                    pt: { navigate: 'navegar',   restart: 'início',   fullscreen: 'fullscreen' },
+                    ja: { navigate: '移動',      restart: '先頭',      fullscreen: '全画面' },
+                    ko: { navigate: '이동',      restart: '처음',      fullscreen: '전체화면' },
+                    zh: { navigate: '翻页',      restart: '重置',      fullscreen: '全屏' },
+                    it: { navigate: 'navigare',  restart: 'inizio',   fullscreen: 'fullscreen' },
+                    nl: { navigate: 'bladeren',  restart: 'begin',    fullscreen: 'vollscherm' },
+                };
+                const t = i18n[_detectLang()] || i18n.en;
+                el = document.createElement('div');
+                el.className = 'keyboard-hint';
+                el.innerHTML = `<kbd>←</kbd> <kbd>→</kbd> ${t.navigate} &middot; <kbd>R</kbd> ${t.restart} &middot; <kbd>F</kbd> ${t.fullscreen}`;
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        _ensureCredit() {
+            let el = document.querySelector('.chassis-credit');
+            if (!el) {
+                el = document.createElement('div');
+                el.className = 'chassis-credit';
+                el.setAttribute('aria-hidden', 'true');
+                el.innerHTML = '💜 by ClickUp Brain';
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        /* ---------- Reveal engine ----------
+           Reveals are driven by the Web Animations API instead of CSS
+           transitions. This lets authors put .reveal* / .step on any
+           element: animation values live in the animation cascade origin
+           and win over normal author declarations, so no wrapper element
+           is required to isolate the chassis from author CSS.
+
+           State per slide:
+           - "hidden":  inline opacity/transform/filter from the 'from'
+                        keyframe of the variant. Set on init and on
+                        forward re-entry.
+           - "played":  animation is running or has run; the class
+                        `reveals-played` on the slide makes playback
+                        idempotent so observer re-fires (resize,
+                        fullscreen) don't restart the animation.
+           - "settled": animation canceled, inline styles cleared. Used
+                        for backward entries (we skip the animation and
+                        show the final state instantly) and for print. */
+
+        _setupReveals() {
+            // Lift the CSS FOUC guard first so getComputedStyle reads each
+            // element's natural opacity, not the guard's blanket opacity: 0.
+            // No paint occurs mid-task — inline hidden styles are applied
+            // before the browser yields, so there is no visible flash.
+            document.documentElement.classList.add('reveals-ready');
+            this.slides.forEach((slide) => {
+                slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                    el._targetOpacity = parseFloat(getComputedStyle(el).opacity);
+                    this._applyHiddenStyle(el);
+                });
+            });
+        }
+
+        _setupPrintSettling() {
+            // Browsers snapshot the document for print/PDF export. WAAPI
+            // animations don't necessarily complete in that snapshot, so
+            // settle every slide to its final state first. After printing,
+            // reset — but only for slides that haven't already been viewed,
+            // so the audience experience picks up where it left off.
+            window.addEventListener('beforeprint', () => {
+                this.slides.forEach((slide) => this._settleSlide(slide));
+            });
+        }
+
+        _readTokens() {
+            const cs = getComputedStyle(document.documentElement);
+            const rawDuration = parseFloat(cs.getPropertyValue('--reveal-duration'));
+            const duration = Number.isFinite(rawDuration) ? rawDuration * 1000 : 800;
+            const ease = cs.getPropertyValue('--reveal-ease').trim() || 'cubic-bezier(0.16, 1, 0.3, 1)';
+            const distance = cs.getPropertyValue('--reveal-distance').trim() || '28px';
+            const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            return {
+                duration: reducedMotion ? 1 : duration,
+                ease,
+                distance,
+            };
+        }
+
+        _getRevealDelay(el) {
+            // Use getAttribute('class') rather than el.className: on SVG
+            // elements, `.className` is an SVGAnimatedString (not a string)
+            // and calling .match on it throws. getAttribute is uniform
+            // across HTML and SVG.
+            const classes = el.getAttribute('class') || '';
+            const m = classes.match(/\bd([1-8])\b/);
+            if (!m) return 0;
+            // Matches CSS .dN: d1 = 100ms, d2 = 250ms, +150ms per step.
+            return 100 + (parseInt(m[1], 10) - 1) * 150;
+        }
+
+        _getRevealKeyframes(el, distance) {
+            const to = el._targetOpacity ?? 1;
+            if (el.classList.contains('reveal-left')) {
+                return [
+                    { opacity: 0, transform: `translateX(calc(-1 * ${distance}))` },
+                    { opacity: to, transform: 'translateX(0)' },
+                ];
+            }
+            if (el.classList.contains('reveal-right')) {
+                return [
+                    { opacity: 0, transform: `translateX(${distance})` },
+                    { opacity: to, transform: 'translateX(0)' },
+                ];
+            }
+            if (el.classList.contains('reveal-scale')) {
+                return [
+                    { opacity: 0, transform: 'scale(0.88)' },
+                    { opacity: to, transform: 'scale(1)' },
+                ];
+            }
+            if (el.classList.contains('reveal-blur')) {
+                return [
+                    { opacity: 0, filter: 'blur(10px)' },
+                    { opacity: to, filter: 'blur(0)' },
+                ];
+            }
+            // Default: .reveal or .step (slide up + fade)
+            return [
+                { opacity: 0, transform: `translateY(${distance})` },
+                { opacity: to, transform: 'translateY(0)' },
+            ];
+        }
+
+        _applyHiddenStyle(el) {
+            const { distance } = this._readTokens();
+            const from = this._getRevealKeyframes(el, distance)[0];
+            if ('opacity' in from) el.style.opacity = from.opacity;
+            if ('transform' in from) el.style.transform = from.transform;
+            if ('filter' in from) el.style.filter = from.filter;
+        }
+
+        _clearHiddenStyle(el) {
+            el.style.opacity = '';
+            el.style.transform = '';
+            el.style.filter = '';
+        }
+
+        _cancelReveal(el) {
+            if (el._revealAnim) {
+                el._revealAnim.cancel();
+                el._revealAnim = null;
+            }
+        }
+
+        _playReveal(el, delayOverride) {
+            this._cancelReveal(el);
+            const { duration, ease, distance } = this._readTokens();
+            const delay = typeof delayOverride === 'number' ? delayOverride : this._getRevealDelay(el);
+            const keyframes = this._getRevealKeyframes(el, distance);
+            // fill: 'backwards' applies the 'from' keyframe during the
+            // stagger delay so the element stays hidden until its turn,
+            // without pinning the 'to' keyframe after the animation ends.
+            // This lets co-existing author CSS (e.g. a `.pulse` CSS
+            // animation on the same element) take over naturally once the
+            // entrance completes — otherwise our fill would mask anything
+            // the author wanted to happen post-reveal.
+            const anim = el.animate(keyframes, {
+                duration,
+                delay,
+                easing: ease,
+                fill: 'backwards',
+            });
+            el._revealAnim = anim;
+            // Safe to clear inline 'from' styles now — the animation's
+            // backwards-fill holds the element at the 'from' keyframe for
+            // the duration of any stagger delay.
+            this._clearHiddenStyle(el);
+        }
+
+        _playSlideReveals(slide) {
+            if (slide.classList.contains('reveals-played')) return;
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(REVEAL_SELECTOR).forEach((el) => this._playReveal(el));
+            // .step elements stay hidden until the user advances.
+        }
+
+        _resetSlideReveals(slide) {
+            // Forward re-entry: cancel in-flight animations, re-hide
+            // everything, and reset step state so the slide replays cleanly
+            // when the observer next adds .visible.
+            slide.classList.remove('reveals-played');
+            slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._applyHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step.step-shown').forEach((el) => el.classList.remove('step-shown'));
+        }
+
+        _settleSlide(slide) {
+            // Print / PDF export: jump to the final state with everything
+            // shown, so every step appears in the exported document.
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._clearHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step').forEach((el) => el.classList.add('step-shown'));
+        }
+
+        _rewindSlide(slide) {
+            // Backward re-entry: show reveals instantly (no replay — the
+            // viewer already saw the intro) but hide every step, so the
+            // slide is positioned at the start of its stepped content and
+            // can be stepped through again.
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._clearHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step').forEach((el) => {
+                el.classList.remove('step-shown');
+                this._cancelReveal(el);
+                this._applyHiddenStyle(el);
+            });
+        }
+
+        /* ---------- Navigation ----------
+           goTo scrolls to the target. Both forward-replay and backward-
+           rewind need to mutate the target BEFORE scrolling — while it's
+           still offscreen — so the viewer never sees the old state flash
+           into view. Resetting after the slide is in view causes a visible
+           "show then hide" blink; the IntersectionObserver fires too late
+           (80% threshold) to catch it. */
+        goTo(index) {
+            const clamped = Math.max(0, Math.min(this.slides.length - 1, index));
+            if (clamped === this.currentSlide) return;
+
+            const target = this.slides[clamped];
+            const goingForward = clamped > this.currentSlide;
+
+            if (target.classList.contains('visible')) {
+                if (goingForward) {
+                    // Forward replay: full reset so the observer can play reveals fresh.
+                    target.classList.remove('visible');
+                    this._resetSlideReveals(target);
+                } else {
+                    // Backward rewind: hide any shown steps so the slide
+                    // scrolls back in at the start of its stepped content.
+                    this._rewindSlide(target);
+                }
+            }
+
+            this._scrollToSlide(clamped, 'smooth');
+        }
+
+        _scrollToSlide(index, behavior) {
+            this.viewports[index]?.scrollIntoView({ behavior, block: 'start' });
+        }
+
+        _slideIndexFromHash(hash) {
+            if (!hash) return -1;
+            return this.slides.findIndex((s) => '#' + s.id === hash);
+        }
+
+        _syncHash() {
+            const slide = this.slides[this.currentSlide];
+            if (!slide || !slide.id) return;
+            const newHash = '#' + slide.id;
+            if (location.hash !== newHash) {
+                // replaceState — keeps the URL in sync without polluting history,
+                // so the browser back button exits the deck instead of stepping through slides.
+                try {
+                    history.replaceState(null, '', newHash);
+                } catch {
+                    // Sandboxed iframes (opaque origin, about:srcdoc) reject URL
+                    // mutation with a SecurityError. Hash sync is a nicety — an
+                    // unguarded throw here kills the observer callback before it
+                    // marks the slide visible and plays its reveals.
+                }
+            }
+        }
+
+        _setupHashNav() {
+            // React to external hash changes (anchor link clicks, back/forward if user uses pushState manually)
+            window.addEventListener('hashchange', () => {
+                const idx = this._slideIndexFromHash(location.hash);
+                if (idx >= 0 && idx !== this.currentSlide) this.goTo(idx);
+            });
+        }
+
+        /* ---------- Custom cursor ----------
+           Accent disc that follows the pointer, hidden after idle. */
+        _setupCursor() {
+            if (!matchMedia('(hover: hover)').matches) return;
+
+            const cursor = document.createElement('div');
+            cursor.className = 'chassis-cursor';
+            cursor.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(cursor);
+            document.body.classList.add('chassis-cursor-active');
+
+            const half = 16;  // matches width/height / 2 in CSS
+            const IDLE_MS = 2500;
+            let idleTimer = null;
+
+            const show = () => {
+                cursor.classList.add('visible');
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(() => {
+                    cursor.classList.remove('visible');
+                }, IDLE_MS);
+            };
+            const hide = () => {
+                clearTimeout(idleTimer);
+                cursor.classList.remove('visible');
+            };
+
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.transform = `translate3d(${e.clientX - half}px, ${e.clientY - half}px, 0)`;
+                show();
+            });
+            document.addEventListener('mouseleave', hide);
+            document.addEventListener('mouseenter', show);
+        }
+
+        /* ---------- Fullscreen ---------- */
+        toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen?.().catch(() => {});
+            } else {
+                document.exitFullscreen?.();
+            }
+        }
+
+        next() { this.goTo(this.currentSlide + 1); }
+        prev() { this.goTo(this.currentSlide - 1); }
+        first() { this.goTo(0); }
+        last() { this.goTo(this.slides.length - 1); }
+
+        /* ---------- Step-aware advance / retreat ----------
+           advance() reveals the next .step on the current slide (if any),
+           otherwise advances to the next slide. retreat() hides the last
+           revealed step, otherwise goes back to the previous slide. */
+        advance() {
+            const current = this.slides[this.currentSlide];
+            const nextStep = current?.querySelector('.step:not(.step-shown)');
+            if (nextStep) {
+                nextStep.classList.add('step-shown');
+                // No stagger on click-reveal — the user's gesture is the trigger.
+                this._playReveal(nextStep, 0);
+                return;
+            }
+            this.next();
+        }
+        retreat() {
+            const current = this.slides[this.currentSlide];
+            const shown = current?.querySelectorAll('.step.step-shown');
+            if (shown && shown.length > 0) {
+                const last = shown[shown.length - 1];
+                last.classList.remove('step-shown');
+                this._cancelReveal(last);
+                this._applyHiddenStyle(last);
+                return;
+            }
+            this.prev();
+        }
+
+        /* ---------- Intersection observer ----------
+           Fire late (>= 80% in view) so reveals play on a settled slide.
+           This is the single source of truth for active-slide state.
+
+           Forward:  add .visible, play reveals. (goTo() has already reset
+                     the target to pre-reveal state if this is a re-visit,
+                     so the animation is fresh either way.)
+           Backward: add .visible, rewind to the start of the stepped
+                     content — reveals are shown instantly (no replay) and
+                     every step is hidden again so the viewer can step
+                     through it fresh. */
+        _setupIntersectionObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    const idx = this.viewports.indexOf(entry.target);
+                    if (idx < 0) return;
+                    const slide = this.slides[idx];
+
+                    if (idx === this.currentSlide) {
+                        // Same-slide re-fire (initial load, resize, fullscreen).
+                        if (!slide.classList.contains('visible')) {
+                            slide.classList.add('visible');
+                        }
+                        // Idempotent: only plays if not already marked played.
+                        this._playSlideReveals(slide);
+                        return;
+                    }
+
+                    const goingForward = idx > this.currentSlide;
+                    this.currentSlide = idx;
+                    this._updateNavDots();
+                    this._syncHash();
+
+                    slide.classList.add('visible');
+                    if (goingForward) {
+                        this._playSlideReveals(slide);
+                    } else {
+                        this._rewindSlide(slide);
+                    }
+                });
+            }, { threshold: 0.8 });
+
+            this.viewports.forEach((viewport) => observer.observe(viewport));
+        }
+
+        /* ---------- Keyboard ---------- */
+        _setupKeyboardNav() {
+            document.addEventListener('keydown', (e) => {
+                // Skip when user is editing text
+                if (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+
+                switch (e.key) {
+                    // Step-aware: consume steps first, then advance slides
+                    case 'ArrowDown':
+                    case 'ArrowRight':
+                    case ' ':
+                        e.preventDefault(); this.advance(); break;
+                    case 'ArrowUp':
+                    case 'ArrowLeft':
+                        e.preventDefault(); this.retreat(); break;
+                    // Slide-level: always skip past steps
+                    case 'PageDown':
+                        e.preventDefault(); this.next(); break;
+                    case 'PageUp':
+                        e.preventDefault(); this.prev(); break;
+                    case 'Home':
+                        e.preventDefault(); this.first(); break;
+                    case 'End':
+                        e.preventDefault(); this.last(); break;
+                    case 'f':
+                    case 'F':
+                        e.preventDefault(); this.toggleFullscreen(); break;
+                    case 'r':
+                    case 'R':
+                        e.preventDefault(); this.first(); break;
+                }
+            });
+        }
+
+        /* ---------- Wheel / trackpad ----------
+           ALWAYS preventDefault — letting any native wheel scroll through
+           races against scrollIntoView + mandatory snap, and blocks macOS
+           two-finger horizontal swipes from triggering browser back/forward.
+           Whichever axis has the larger magnitude wins, so vertical scroll
+           and horizontal trackpad swipes both drive advance/retreat. Lock
+           briefly after a gesture so trackpad inertia (continuous small
+           deltas) can't spam next(). */
+        _setupWheelNav() {
+            let locked = false;
+            window.addEventListener('wheel', (e) => {
+                if (e.ctrlKey) return;                // preserve browser pinch-zoom (ctrl+wheel)
+                e.preventDefault();                   // block native scroll + horizontal back-swipe
+                if (locked) return;
+                const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+                if (Math.abs(delta) < 20) return;     // ignore tiny flicks
+                locked = true;
+                if (delta > 0) this.advance(); else this.retreat();
+                setTimeout(() => { locked = false; }, 500);
+            }, { passive: false });
+        }
+
+        /* ---------- Touch / swipe ----------
+           Horizontal swipes advance / retreat slides; left = next, right =
+           prev (matches stories / carousel conventions). Dominantly
+           vertical swipes fall through to native scroll-snap so the
+           existing top/bottom behavior keeps working. A time budget
+           rejects slow pans that were really aborted scrolls. */
+        _setupTouchNav() {
+            const MIN_DISTANCE = 50;     // px — below this is a tap or jitter
+            const MAX_TIME = 600;        // ms — slower than this is a pan, not a swipe
+            const DOMINANCE = 1.2;       // horizontal must beat vertical by this factor
+
+            let startX = 0, startY = 0, startTime = 0;
+            let tracking = false;
+
+            window.addEventListener('touchstart', (e) => {
+                if (document.body.classList.contains('artifact-editor-editing')) { tracking = false; return; }
+                if (e.touches.length !== 1) { tracking = false; return; }
+                const t = e.touches[0];
+                startX = t.clientX;
+                startY = t.clientY;
+                startTime = performance.now();
+                tracking = true;
+            }, { passive: true });
+
+            window.addEventListener('touchend', (e) => {
+                if (!tracking) return;
+                tracking = false;
+                const t = e.changedTouches[0];
+                const dx = t.clientX - startX;
+                const dy = t.clientY - startY;
+                const ax = Math.abs(dx), ay = Math.abs(dy);
+                if (ax < MIN_DISTANCE) return;
+                if (ax < ay * DOMINANCE) return;
+                if (performance.now() - startTime > MAX_TIME) return;
+                if (dx < 0) this.advance(); else this.retreat();
+            }, { passive: true });
+
+            window.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+        }
+
+        /* ---------- Canvas scaling ----------
+           Each scaler holds a fixed 1920×1080 slide. Compute the
+           scale factor that fits it inside the viewport and apply via
+           CSS custom property. Runs on init, resize, and fullscreen. */
+        _setupCanvasScale() {
+            const CANVAS_W = 1920;
+            const CANVAS_H = 1080;
+            const scales = this.scales;
+
+            const update = () => {
+                const scale = Math.min(
+                    window.innerWidth / CANVAS_W,
+                    window.innerHeight / CANVAS_H
+                );
+                scales.forEach((el) => {
+                    el?.style.setProperty('--slide-scale', scale);
+                });
+            };
+
+            update();
+            window.addEventListener('resize', update);
+            document.addEventListener('fullscreenchange', () => {
+                requestAnimationFrame(update);
+            });
+        }
+
+        /* ---------- Viewport sync ----------
+           Resize / fullscreenchange → realign current slide. Each slide is
+           100vh, so a viewport height change leaves the existing scroll
+           position out of alignment with the slide top; scroll-snap doesn't
+           re-snap on its own. */
+        _setupViewportSync() {
+            const realign = () => {
+                requestAnimationFrame(() => {
+                    this._scrollToSlide(this.currentSlide, 'auto');
+                });
+            };
+            window.addEventListener('resize', realign);
+            document.addEventListener('fullscreenchange', realign);
+        }
+
+        /* ---------- Nav dots ---------- */
+        _buildNavDots() {
+            // Clear first — prevents duplicates when DOM is re-serialized/re-opened
+            this.navDotsContainer.innerHTML = '';
+            this.slides.forEach((slide, idx) => {
+                const dot = document.createElement('button');
+                dot.setAttribute('aria-label', `Go to slide ${idx + 1}`);
+                if (idx === 0) dot.classList.add('active');
+                dot.addEventListener('click', () => this.goTo(idx));
+                this.navDotsContainer.appendChild(dot);
+            });
+        }
+
+        _updateNavDots() {
+            const dots = this.navDotsContainer.querySelectorAll('button');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === this.currentSlide);
+            });
+        }
+    }
+
+    /* ---------- Auto-init ---------- */
+    function init() {
+        // Each slide canvas is its own editable host for the inline editor.
+        document.querySelectorAll('.slide').forEach(function (el) {
+            el.classList.add('artifact-editable');
+        });
+        window.slides = new SlidePresentation();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+
+</script>
+<!-- /skill:chassis -->
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>STS Week 5 | Sessions 9-10 | ICT Trends: AI & IoT</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&display=swap"/>
+  <style>
+    :root{--bg:#f0f5fa;--fg:#081326;--card:#0b2960;--cdf:#fff;--ac:#00c2ff;--ac2:#ffb800;--ac3:#ff4d6d;--acg:#10b981;--bd:rgba(11,41,96,.12);--fd:'Archivo Black',sans-serif;--fb:'Space Grotesk',sans-serif}
+    h1,h2,h3{font-family:var(--fd);letter-spacing:-.02em}p,li,span,td,th{font-family:var(--fb)}
+    .slide{padding:80px;display:flex;flex-direction:column;justify-content:center;position:relative;overflow:hidden}
+    .slide h1{font-size:120px;line-height:1.03;margin-bottom:18px}.slide h2{font-size:60px;line-height:1.08;margin-bottom:26px}
+    .slide h3{font-size:36px;line-height:1.15;margin-bottom:10px}.slide p{font-size:30px;line-height:1.45;max-width:1240px}
+    .ey{font-size:24px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ac);margin-bottom:16px}
+    .sn{position:absolute;top:30px;right:70px;font-size:200px;line-height:1;opacity:.06;font-family:var(--fd)}
+    .bg1{background:linear-gradient(135deg,#061a40,#0c3d91 50%,#1258b0);color:#fff}
+    .bg2{background:linear-gradient(135deg,#f0f5fa,#dde9f7);color:var(--fg)}
+    .bg3{background:linear-gradient(140deg,#0b2458,#155799 55%,#1f8fff);color:#fff}
+    .bg4{background:linear-gradient(145deg,#f7fbff,#e7f1ff 52%,#d4e6ff);color:var(--fg)}
+    .bg5{background:linear-gradient(135deg,#0d1b3e,#0a4d7a 60%,#05a0d1);color:#fff}
+    .bg6{background:linear-gradient(135deg,#1a0a3e,#2d1b69 50%,#5b21b6);color:#fff}
+    .cd{background:var(--card);color:var(--cdf);border-radius:22px;padding:36px 42px}
+    .gl{background:rgba(255,255,255,.1);color:#fff;border-radius:18px;padding:28px 30px}
+    .lc{background:rgba(255,255,255,.92);border:2px solid var(--bd);border-radius:18px;padding:28px 32px}
+    .g2{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:20px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px;margin-top:20px}
+    .ls{list-style:none;padding:0;margin:0}.ls li{font-size:30px;line-height:1.45;padding:12px 0 12px 38px;position:relative}
+    .ls li::before{content:'▸';position:absolute;left:0;color:var(--ac);font-weight:900}
+    table{width:100%;border-collapse:collapse;margin-top:16px}th{text-align:left;background:var(--card);color:#fff;font-size:24px;padding:16px 20px}
+    td{font-size:24px;padding:16px 20px;border-bottom:1px solid var(--bd)}tr:nth-child(even) td{background:rgba(0,194,255,.04)}
+    .meme{background:#111827;color:#fff;border:3px solid var(--ac);border-radius:22px;padding:52px;text-align:center;max-width:960px;margin:0 auto}
+    .meme .emoji{font-size:80px;margin-bottom:16px}
+    .tl{position:relative;margin-top:20px;padding-left:36px}.tl::before{content:'';position:absolute;left:10px;top:0;bottom:0;width:4px;border-radius:4px;background:linear-gradient(180deg,var(--ac),var(--ac2))}
+    .ti{position:relative;margin-bottom:20px}.ti::before{content:'';position:absolute;left:-32px;top:10px;width:16px;height:16px;border-radius:50%;background:var(--ac2)}
+    .ti h3{font-size:28px;margin-bottom:4px}.ti p{font-size:24px;opacity:.82}
+    .pill{display:inline-block;padding:10px 24px;border-radius:999px;font-size:22px;font-weight:700}
+    .pa{background:rgba(0,194,255,.14);color:var(--ac)}.pb2{background:rgba(255,184,0,.14);color:var(--ac2)}
+    .orb::before{content:'';position:absolute;width:860px;height:860px;border-radius:50%;left:58%;top:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(0,194,255,.14),transparent 68%);animation:pulse 6s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:.35;transform:translate(-50%,-50%) scale(.95)}50%{opacity:.7;transform:translate(-50%,-50%) scale(1.05)}}
+    .cmp{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:20px}
+    .tiny{font-size:22px;opacity:.72}.ctr{text-align:center}
+    .stat{font-size:100px;line-height:1;font-family:var(--fd);color:var(--ac)}
+    .stat2{font-size:100px;line-height:1;font-family:var(--fd);color:var(--ac2)}
+    .vb{min-height:200px;border-radius:20px;background:linear-gradient(135deg,#0b2960,#1b69b6);display:flex;align-items:center;justify-content:center;text-align:center;padding:30px;color:#fff;font-size:26px}
+  </style>
+</head>
+<body>
+
+<!-- SESSION 9: ARTIFICIAL INTELLIGENCE -->
+
+<section class="slide bg1 orb" data-script="Good day class! Welcome to Week 5. This is where the course shifts forward. We've done history, we've done Philippine context. Now we enter the ICT trends unit: the technologies that are reshaping the world RIGHT NOW. Today's topic is Artificial Intelligence. Hindi na ito sci-fi. Ito na ang reality. From the apps you use daily to the systems that affect hiring, healthcare, and policing, AI is already embedded. Our job in STS is to understand it not just technically but socially and ethically.">
+  <span class="sn" style="color:rgba(255,255,255,.06)">09</span>
+  <span class="ey reveal d1">week 5 | session 9</span>
+  <h1 class="reveal d2" style="font-size:96px;color:#fff">Artificial<br>Intelligence</h1>
+  <p class="reveal d3" style="color:rgba(255,255,255,.8);font-size:32px">The technology redefining what machines can do, and what humans must rethink.</p>
+  <p class="reveal d4 tiny" style="color:rgba(255,255,255,.55);margin-top:24px">Science, Technology and Society | Elenito G. David</p>
+</section>
+
+<section class="slide bg4" data-script="What is AI? At its simplest, AI refers to computer systems that perform tasks typically requiring human intelligence. That includes learning from data, recognizing patterns, understanding language, making decisions, and solving problems. The key distinction from traditional software: traditional programs follow explicit instructions. AI systems learn from examples and can handle situations they weren't explicitly programmed for.">
+  <span class="sn">09</span>
+  <span class="ey reveal d1">definition</span>
+  <h2 class="reveal d2">What is Artificial Intelligence?</h2>
+  <div class="cd reveal d3" style="max-width:1180px">
+    <p style="color:#fff;font-size:34px">Computer systems that perform tasks requiring <strong style="color:var(--ac)">human-like intelligence</strong>: learning, pattern recognition, language use, decision-making, and problem solving.</p>
+  </div>
+  <p class="reveal d4" style="margin-top:20px;opacity:.76">Key difference: traditional software follows rules. AI learns from data.</p>
+</section>
+
+<section class="slide bg2" data-script="Brief history. AI as a field started in 1956 at Dartmouth. Early AI was rule-based: if X then Y. Progress was slow for decades (the AI winters). Then around 2012, deep learning took off because of more data, more computing power, and better algorithms. 2022 onwards: generative AI like ChatGPT exploded into mainstream use. We are now in the fastest period of AI development in history.">
+  <span class="sn">09</span>
+  <span class="ey reveal d1">brief history</span>
+  <h2 class="reveal d2">AI Timeline</h2>
+  <div class="tl reveal d3">
+    <div class="ti"><h3>1956 — Dartmouth Conference</h3><p>AI as a field is born. Rule-based systems.</p></div>
+    <div class="ti"><h3>1970s-90s — AI Winters</h3><p>Progress stalls. Hype exceeds reality.</p></div>
+    <div class="ti"><h3>2012 — Deep Learning breakthrough</h3><p>ImageNet, neural networks beat humans at image tasks.</p></div>
+    <div class="ti"><h3>2017 — Transformer architecture</h3><p>Foundation for GPT, BERT, modern language models.</p></div>
+    <div class="ti"><h3>2022+ — Generative AI era</h3><p>ChatGPT, DALL-E, Midjourney go mainstream.</p></div>
+  </div>
+</section>
+
+<section class="slide bg4" data-script="Types of AI. Narrow AI (also called weak AI): designed for specific tasks. This is what exists today. Your spam filter, Netflix recommendations, face unlock, Siri, ChatGPT, all narrow AI. General AI (AGI): human-level intelligence across all domains. This does NOT exist yet. Superintelligent AI: beyond human capability. Purely theoretical. Don't let sci-fi confuse you. What we have is narrow AI, and it's already transformative enough.">
+  <span class="sn">09</span>
+  <span class="ey reveal d1">types</span>
+  <h2 class="reveal d2">Types of AI</h2>
+  <div class="g3 reveal d3">
+    <div class="lc"><h3>🎯 Narrow AI</h3><p>Specific tasks only. All current AI. Spam filter, ChatGPT, face unlock.</p></div>
+    <div class="lc"><h3>🧠 General AI (AGI)</h3><p>Human-level across all domains. Does NOT exist yet.</p></div>
+    <div class="lc"><h3>⚡ Superintelligence</h3><p>Beyond human capability. Purely theoretical.</p></div>
+  </div>
+  <p class="reveal d4" style="margin-top:16px;opacity:.76">We have narrow AI. It's already transformative enough.</p>
+</section>
+
+<section class="slide bg2" data-script="How does AI actually work? The core idea: machine learning. You feed a system large amounts of data. The system identifies patterns in that data. Then it can make predictions or decisions on new, unseen data. Deep learning uses layers of neural networks (inspired loosely by the brain) to find increasingly complex patterns. The more data and computing power, the better it gets. That's why big tech companies with massive data have an advantage.">
+  <span class="sn">09</span>
+  <span class="ey reveal d1">how it works</span>
+  <h2 class="reveal d2">Machine Learning in 4 steps</h2>
+  <div class="g2 reveal d3">
+    <div class="lc"><h3>1. Data</h3><p>Feed the system large amounts of examples (text, images, numbers).</p></div>
+    <div class="lc"><h3>2. Training</h3><p>System identifies patterns and relationships in the data.</p></div>
+    <div class="lc"><h3>3. Model</h3><p>The learned patterns become a model that can make predictions.</p></div>
+    <div class="lc"><h3>4. Inference</h3><p>Model processes new data and produces outputs (answers, classifications, content).</p></div>
+  </div>
+</section>
+
+<section class="slide bg3" data-script="AI in your daily life. Social media feeds: algorithm decides what you see. Maps: predicts traffic, optimizes routes. Online shopping: recommends products. Email: filters spam, suggests replies. Music and video: curates playlists and watchlists. Banking: detects fraud. Camera: face recognition and photo enhancement. You interact with AI dozens of times a day without thinking about it.">
+  <span class="sn" style="color:rgba(255,255,255,.06)">09</span>
+  <span class="ey reveal d1">daily life</span>
+  <h2 class="reveal d2" style="color:#fff">AI you already use every day</h2>
+  <div class="g3 reveal d3">
+    <div class="gl"><h3>📱 Social media</h3><p>Algorithms decide your feed.</p></div>
+    <div class="gl"><h3>🗺️ Maps</h3><p>Traffic prediction, route optimization.</p></div>
+    <div class="gl"><h3>🛒 Shopping</h3><p>Product recommendations.</p></div>
+    <div class="gl"><h3>📧 Email</h3><p>Spam filter, smart replies.</p></div>
+    <div class="gl"><h3>🎵 Streaming</h3><p>Music/video curation.</p></div>
+    <div class="gl"><h3>🏦 Banking</h3><p>Fraud detection, credit scoring.</p></div>
+  </div>
+</section>
+
+<section class="slide bg4" data-script="Generative AI: the 2023+ wave. Tools like ChatGPT, Claude, Gemini, Midjourney, DALL-E can generate text, images, code, audio, and video from prompts. This is different from older AI that just classified or predicted. Generative AI creates new content. It is the reason this topic feels urgent: because it directly affects education, creative work, journalism, and professional services. Including YOUR studies.">
+  <span class="sn">09</span>
+  <span class="ey reveal d1">generative AI</span>
+  <h2 class="reveal d2">The Generative AI Wave</h2>
+  <div class="g2 reveal d3">
+    <div class="lc"><h3>📝 Text</h3><p>ChatGPT, Claude, Gemini: write essays, code, emails, reports.</p></div>
+    <div class="lc"><h3>🎨 Images</h3><p>Midjourney, DALL-E, Stable Diffusion: create art from text prompts.</p></div>
+    <div class="lc"><h3>🎬 Video/Audio</h3><p>Sora, ElevenLabs: generate video and voice content.</p></div>
+    <div class="lc"><h3>💻 Code</h3><p>GitHub Copilot, Cursor: AI writes and debugs code.</p></div>
+  </div>
+</section>
+
+<section class="slide bg2" data-script="AI benefits across sectors. Healthcare: faster diagnosis, drug discovery, patient monitoring. Education: personalized learning, tutoring, accessibility. Business: automation, forecasting, customer service. Agriculture: crop monitoring, pest detection, yield prediction. Science: protein folding, climate modeling, materials discovery. The potential is enormous when applied responsibly.">
+  <span class="sn">09</span>
+  <span class="ey reveal d1">benefits</span>
+  <h2 class="reveal d2">AI Benefits by Sector</h2>
+  <div class="g3 reveal d3">
+    <div class="lc"><h3>🏥 Health</h3><p>Diagnosis, drug discovery, monitoring.</p></div>
+    <div class="lc"><h3>🎓 Education</h3><p>Personalized learning, tutoring.</p></div>
+    <div class="lc"><h3>📊 Business</h3><p>Automation, forecasting.</p></div>
+    <div class="lc"><h3>🌾 Agriculture</h3><p>Crop monitoring, pest detection.</p></div>
+    <div class="lc"><h3>🔬 Science</h3><p>Protein folding, climate models.</p></div>
+    <div class="lc"><h3>🎨 Creative</h3><p>Design, writing, music tools.</p></div>
+  </div>
+</section>
+
+<section class="slide bg4" data-script="AI risks and concerns. Bias: AI trained on biased data produces biased outputs. This has real consequences in hiring, lending, policing. Job displacement: routine cognitive tasks are automatable. Deepfakes: synthetic media erodes trust. Privacy: surveillance at scale. Concentration of power: few companies control AI development. Accountability gap: when AI makes a wrong decision, who is responsible? These are all STS questions.">
+  <span class="sn">09</span>
+  <span class="ey reveal d1">risks</span>
+  <h2 class="reveal d2">AI Risks & Concerns</h2>
+  <ul class="ls">
+    <li class="step">Bias: biased data → biased outputs (hiring, policing, lending)</li>
+    <li class="step">Job displacement: routine cognitive work automatable</li>
+    <li class="step">Deepfakes: synthetic media erodes trust</li>
+    <li class="step">Privacy: surveillance at unprecedented scale</li>
+    <li class="step">Power concentration: few companies control AI</li>
+    <li class="step">Accountability: who's responsible when AI is wrong?</li>
+  </ul>
+</section>
+
+<section class="slide bg3" data-script="Meme time. Student: Sir, is it okay to use AI for homework? Teacher: Depends. Did you learn something, or did you just copy-paste? This captures the key tension in education right now. AI tools are powerful assistants, but using them without understanding defeats the purpose of learning. The skill is not avoiding AI. The skill is using it critically and transparently.">
+  <div class="meme reveal-scale d1"><div class="emoji">🤖📝🤔</div><p style="font-size:36px;margin-bottom:12px">Student: "Sir, is it okay to use AI for homework?"</p><p style="font-size:38px;color:var(--ac)">Teacher: "Did you LEARN something, or just copy-paste?"</p><p style="font-size:24px;opacity:.6;margin-top:14px">The real question isn't IF you use AI. It's HOW.</p></div>
+</section>
+
+<section class="slide bg4" data-script="AI and jobs: the nuanced view. AI won't replace all jobs. But it WILL transform most jobs. The most affected: repetitive cognitive tasks (data entry, basic writing, customer support, some analysis). The least affected (for now): jobs requiring physical presence, emotional intelligence, creative judgment, complex negotiation. The realistic view: AI replaces TASKS, not entire people. But people who learn to use AI will replace those who don't.">
+  <span class="sn">09</span>
+  <span class="ey reveal d1">jobs</span>
+  <h2 class="reveal d2">AI and Employment</h2>
+  <div class="cmp reveal d3">
+    <div class="lc"><h3>⚠️ Most exposed</h3><p>Data entry, basic writing, customer support, some analysis, routine coding.</p></div>
+    <div class="lc"><h3>🛡️ Less exposed (for now)</h3><p>Physical trades, emotional labor, creative judgment, complex negotiation.</p></div>
+  </div>
+  <p class="reveal d4" style="margin-top:16px;opacity:.76">AI replaces tasks, not entire people. But people who use AI will outpace those who don't.</p>
+</section>
+
+<section class="slide bg2" data-script="AI in the Philippine context. The Philippines has a large BPO sector (over 1 million workers). AI-powered chatbots and automation could disrupt this industry. But also: opportunity. AI can help Philippine agriculture, disaster response, healthcare, and education if deployed well. The key policy question: are we preparing Filipinos for AI, or will we be caught off guard?">
+  <span class="sn">09</span>
+  <span class="ey reveal d1">PH context</span>
+  <h2 class="reveal d2">AI in the Philippines</h2>
+  <div class="g2 reveal d3">
+    <div class="lc"><h3>⚠️ Threat</h3><p>BPO sector (1M+ workers) exposed to AI chatbots and automation.</p></div>
+    <div class="lc"><h3>💡 Opportunity</h3><p>Agriculture, disaster response, health, education can benefit from AI if deployed well.</p></div>
+  </div>
+  <p class="reveal d4" style="margin-top:16px;opacity:.76">Are we preparing for AI, or will we be caught off guard?</p>
+</section>
+
+<section class="slide bg4" data-script="AI Ethics: the big questions. Should AI make decisions about people's lives (parole, hiring, medical treatment)? Who is accountable when AI causes harm? Should AI-generated content be labeled? How do we prevent AI from deepening inequality? Should there be global AI governance? These are not technical questions. They are ethical and political. STS territory.">
+  <span class="sn">09</span>
+  <span class="ey reveal d1">ethics</span>
+  <h2 class="reveal d2">AI Ethics: The Big Questions</h2>
+  <ul class="ls">
+    <li class="step">Should AI decide on parole, hiring, medical treatment?</li>
+    <li class="step">Who's accountable when AI causes harm?</li>
+    <li class="step">Should AI content be labeled?</li>
+    <li class="step">How do we prevent AI from deepening inequality?</li>
+    <li class="step">Should there be global AI governance?</li>
+  </ul>
+</section>
+
+<section class="slide bg2" data-script="Activity: AI Audit. In pairs, pick one AI system you use daily (TikTok algorithm, Grab pricing, GCash fraud detection, Netflix recommendations). Try to answer: what data does it use? Who benefits? Who might be harmed? Is it transparent? Do you have control over it? This is a mini STS audit. 7 minutes, then share.">
+  <span class="sn">09</span>
+  <span class="ey reveal d1">activity</span>
+  <h2 class="reveal d2">AI Audit: Pick a System</h2>
+  <div class="cd reveal d3" style="max-width:1100px">
+    <p style="color:var(--ac);font-size:26px;font-weight:700;margin-bottom:12px">Pair Activity (7 min):</p>
+    <p style="color:#fff;font-size:30px;line-height:1.5">Pick one AI system you use daily. Answer:</p>
+    <ul style="color:rgba(255,255,255,.86);font-size:26px;padding-left:24px;line-height:1.8;margin-top:12px"><li>What data does it use?</li><li>Who benefits from it?</li><li>Who might be harmed?</li><li>Is it transparent?</li><li>Do you have control over it?</li></ul>
+  </div>
+</section>
+
+<section class="slide bg1" data-script="Session 9 recap. AI is narrow (task-specific) systems that learn from data. It's already embedded in daily life. Benefits are real: health, education, efficiency. Risks are real: bias, jobs, deepfakes, privacy, power concentration. The Philippines faces both threat (BPO disruption) and opportunity (agriculture, health, disaster). Ethics questions are central. Next session: Internet of Things.">
+  <span class="sn" style="color:rgba(255,255,255,.06)">09</span>
+  <span class="ey reveal d1">recap</span>
+  <h2 class="reveal d2" style="color:#fff">Session 9 Takeaways</h2>
+  <ul class="ls reveal d3">
+    <li style="color:rgba(255,255,255,.9)">AI = systems that learn from data (narrow AI today)</li>
+    <li style="color:rgba(255,255,255,.9)">Already embedded in daily life</li>
+    <li style="color:rgba(255,255,255,.9)">Benefits: health, education, efficiency</li>
+    <li style="color:rgba(255,255,255,.9)">Risks: bias, jobs, deepfakes, privacy, power</li>
+    <li style="color:rgba(255,255,255,.9)">PH: BPO threat + agriculture/health opportunity</li>
+  </ul>
+</section>
+
+<!-- SESSION 10: INTERNET OF THINGS -->
+
+<section class="slide bg6" data-script="Session 10! Today we cover the Internet of Things, or IoT. If AI is about making machines smarter, IoT is about making EVERYTHING connected. Your watch, your fridge, your car, traffic lights, factory machines, even agricultural soil sensors, all talking to each other through the internet. This changes how we live, work, and manage cities. It also creates new privacy and security risks. Let's break it down.">
+  <span class="sn" style="color:rgba(255,255,255,.06)">10</span>
+  <span class="ey reveal d1">session 10</span>
+  <h1 class="reveal d2" style="font-size:96px;color:#fff">Internet of<br>Things (IoT)</h1>
+  <p class="reveal d3" style="color:rgba(255,255,255,.8);font-size:32px">When everything connects, everything changes.</p>
+</section>
+
+<section class="slide bg4" data-script="Definition. IoT refers to the network of physical objects (things) embedded with sensors, software, and connectivity that enables them to collect and exchange data. The key idea: objects that were previously offline become data sources and data receivers. Your phone already does this. IoT extends it to everything else: appliances, vehicles, buildings, farms, cities.">
+  <span class="sn">10</span>
+  <span class="ey reveal d1">definition</span>
+  <h2 class="reveal d2">What is the Internet of Things?</h2>
+  <div class="cd reveal d3" style="max-width:1180px">
+    <p style="color:#fff;font-size:34px">A network of <strong style="color:var(--ac)">physical objects</strong> embedded with sensors, software, and connectivity that collect and exchange data. Objects that were offline become data sources.</p>
+  </div>
+</section>
+
+<section class="slide bg2" data-script="The numbers. By 2025, over 75 billion IoT devices worldwide. That's roughly 10 devices per person on the planet. The market is projected at over 1 trillion dollars. Most growth is in industrial IoT (factories, supply chains) and smart cities. Consumer IoT (smart homes, wearables) is growing fast too. The Philippines is behind in IoT adoption compared to neighbors but catching up in specific sectors like agriculture and logistics.">
+  <span class="sn">10</span>
+  <span class="ey reveal d1">scale</span>
+  <h2 class="reveal d2">How big is IoT?</h2>
+  <div class="g3 reveal d3">
+    <div class="lc ctr"><p class="stat" style="font-size:80px">75B+</p><p>IoT devices by 2025</p></div>
+    <div class="lc ctr"><p class="stat2" style="font-size:80px">$1T+</p><p>Market size projected</p></div>
+    <div class="lc ctr"><p class="stat" style="font-size:80px">~10</p><p>Connected devices per person</p></div>
+  </div>
+</section>
+
+<section class="slide bg4" data-script="How IoT works. Three layers. First: the devices or sensors that collect data (temperature, motion, location, moisture, heart rate). Second: the network that transmits data (WiFi, Bluetooth, cellular, satellite). Third: the platform or cloud that processes data and triggers actions (alerts, automation, analytics). When these three layers connect smoothly, you get smart systems that respond to real-world conditions in real time.">
+  <span class="sn">10</span>
+  <span class="ey reveal d1">how it works</span>
+  <h2 class="reveal d2">IoT Architecture: 3 Layers</h2>
+  <div class="g3 reveal d3">
+    <div class="lc"><h3>1. 📡 Sensors</h3><p>Collect data: temperature, motion, location, moisture, heart rate.</p></div>
+    <div class="lc"><h3>2. 🌐 Network</h3><p>Transmit data: WiFi, Bluetooth, cellular, satellite.</p></div>
+    <div class="lc"><h3>3. ☁️ Platform</h3><p>Process data: cloud analytics, triggers, automation.</p></div>
+  </div>
+</section>
+
+<section class="slide bg2" data-script="IoT examples in daily life. Smart homes: lights, locks, thermostats, cameras you control from your phone. Wearables: fitness trackers, smartwatches that monitor heart rate and sleep. Smart cities: traffic management, waste collection, street lighting. Healthcare: remote patient monitoring, connected medical devices. Agriculture: soil sensors, automated irrigation, drone monitoring. Logistics: package tracking, fleet management.">
+  <span class="sn">10</span>
+  <span class="ey reveal d1">examples</span>
+  <h2 class="reveal d2">IoT in Real Life</h2>
+  <div class="g3 reveal d3">
+    <div class="lc"><h3>🏠 Smart Home</h3><p>Lights, locks, thermostat, cameras via phone.</p></div>
+    <div class="lc"><h3>⌚ Wearables</h3><p>Fitness trackers, heart rate, sleep monitoring.</p></div>
+    <div class="lc"><h3>🏙️ Smart Cities</h3><p>Traffic, waste, lighting management.</p></div>
+    <div class="lc"><h3>🏥 Healthcare</h3><p>Remote monitoring, connected devices.</p></div>
+    <div class="lc"><h3>🌾 Agriculture</h3><p>Soil sensors, auto-irrigation, drones.</p></div>
+    <div class="lc"><h3>🚚 Logistics</h3><p>Package tracking, fleet management.</p></div>
+  </div>
+</section>
+
+<section class="slide bg3" data-script="IoT + AI = the real power combo. When IoT collects data from the physical world and AI processes it intelligently, you get systems that can predict, adapt, and automate. Example: a farm sensor detects low soil moisture (IoT), AI decides exactly how much water to deliver and when (intelligent automation), and the irrigation system acts automatically. This is called AIoT and it's where most innovation is heading.">
+  <span class="sn" style="color:rgba(255,255,255,.06)">10</span>
+  <span class="ey reveal d1">IoT + AI</span>
+  <h2 class="reveal d2" style="color:#fff">When IoT meets AI = AIoT</h2>
+  <div class="g2 reveal d3">
+    <div class="gl"><h3>IoT alone</h3><p>Collects data from the physical world. Reports what's happening.</p></div>
+    <div class="gl"><h3>IoT + AI</h3><p>Collects data AND makes intelligent decisions. Predicts, adapts, automates.</p></div>
+  </div>
+  <p class="reveal d4" style="color:rgba(255,255,255,.76);margin-top:18px">Example: soil sensor + AI = smart irrigation that waters exactly when and how much needed.</p>
+</section>
+
+<section class="slide bg4" data-script="IoT in the Philippines. Agriculture: DOST and some private companies deploy soil moisture sensors and weather stations for farmers. Disaster: IoT flood sensors and rain gauges connected to early warning systems. Traffic: some cities test smart traffic lights. Logistics: major companies use GPS tracking. Challenges: internet connectivity in rural areas, cost of devices, technical literacy. The infrastructure gap limits IoT adoption.">
+  <span class="sn">10</span>
+  <span class="ey reveal d1">PH context</span>
+  <h2 class="reveal d2">IoT in the Philippines</h2>
+  <div class="g2 reveal d3">
+    <div class="lc"><h3>🌾 Agriculture</h3><p>Soil sensors, weather stations for farmers (DOST, private).</p></div>
+    <div class="lc"><h3>🌊 Disaster</h3><p>IoT flood sensors, rain gauges for early warning.</p></div>
+    <div class="lc"><h3>🚗 Traffic</h3><p>Smart traffic lights (pilot cities).</p></div>
+    <div class="lc"><h3>⚠️ Barriers</h3><p>Rural connectivity, device cost, technical literacy.</p></div>
+  </div>
+</section>
+
+<section class="slide bg2" data-script="IoT risks and concerns. Privacy: every connected device is a potential surveillance tool. Your smart speaker, camera, even your car can collect data about your habits, location, conversations. Security: IoT devices are often poorly secured, making them targets for hackers. A hacked smart lock is worse than no smart lock. Data ownership: who owns the data your devices generate? Usually the company, not you. Environmental: billions of devices means e-waste at scale.">
+  <span class="sn">10</span>
+  <span class="ey reveal d1">risks</span>
+  <h2 class="reveal d2">IoT Risks & Concerns</h2>
+  <ul class="ls">
+    <li class="step">Privacy: every device is a potential surveillance tool</li>
+    <li class="step">Security: poorly secured devices = hacking targets</li>
+    <li class="step">Data ownership: companies own your data, not you</li>
+    <li class="step">E-waste: billions of devices = massive environmental cost</li>
+    <li class="step">Dependence: system failures can cascade</li>
+  </ul>
+</section>
+
+<section class="slide bg4" data-script="Meme. Your smart fridge: knows you're out of milk. Also your smart fridge: sends your eating habits to 47 third-party companies. The point is real. Convenience always comes at a cost. With IoT, that cost is often data you didn't realize you were giving away. STS asks: is the convenience worth the trade-off? And who decided that trade-off for you?">
+  <div class="meme reveal-scale d1"><div class="emoji">🧊📡🕵️</div><p style="font-size:36px;margin-bottom:12px">Smart fridge: *knows you're out of milk*</p><p style="font-size:36px;color:var(--ac)">Also smart fridge: *sends your eating habits to 47 companies*</p><p style="font-size:24px;opacity:.6;margin-top:14px">Convenience always has a price. Usually your data.</p></div>
+</section>
+
+<section class="slide bg2" data-script="IoT and smart cities. The vision: cities where traffic flows are optimized in real time, waste bins signal when they're full, street lights dim when no one is around, air quality is monitored block by block, and emergency services are dispatched based on sensor data. Some cities like Singapore, Seoul, and Barcelona are implementing this. For Philippine cities like Manila, Cebu, and Davao, the opportunity is there but infrastructure and governance must catch up.">
+  <span class="sn">10</span>
+  <span class="ey reveal d1">smart cities</span>
+  <h2 class="reveal d2">IoT and Smart Cities</h2>
+  <div class="g3 reveal d3">
+    <div class="lc"><h3>🚦 Traffic</h3><p>Real-time flow optimization based on sensor data.</p></div>
+    <div class="lc"><h3>🗑️ Waste</h3><p>Bins signal when full for efficient collection.</p></div>
+    <div class="lc"><h3>💡 Lighting</h3><p>Street lights dim when no one is present.</p></div>
+    <div class="lc"><h3>🌫️ Air quality</h3><p>Block-by-block monitoring and alerts.</p></div>
+    <div class="lc"><h3>🚑 Emergency</h3><p>Sensor-based dispatch and response.</p></div>
+    <div class="lc"><h3>🇵🇭 PH cities</h3><p>Opportunity exists but infra must catch up.</p></div>
+  </div>
+</section>
+
+<section class="slide bg4" data-script="STS questions for IoT. If your city is fully sensored, who watches the data? Is consent meaningful when IoT is everywhere? Should essential services (water, power, transport) depend on connected systems that can be hacked? Who is liable when an IoT system fails and causes harm? How do we handle the digital divide when IoT benefits only those with connectivity? These are policy, ethics, and design questions combined.">
+  <span class="sn">10</span>
+  <span class="ey reveal d1">sts questions</span>
+  <h2 class="reveal d2">STS Questions for IoT</h2>
+  <ul class="ls">
+    <li class="step">If your city is fully sensored, who watches the data?</li>
+    <li class="step">Is consent meaningful when IoT is everywhere?</li>
+    <li class="step">Should critical services depend on hackable systems?</li>
+    <li class="step">Who's liable when IoT systems fail?</li>
+    <li class="step">Does IoT deepen the digital divide?</li>
+  </ul>
+</section>
+
+<section class="slide bg2" data-script="Comparing AI and IoT. AI makes systems intelligent (processes and decides). IoT makes the physical world connected (senses and communicates). Together they create smart environments. They are different but complementary. In real deployments, you almost always see both together. Understanding this distinction helps you analyze which issues come from which technology.">
+  <span class="sn">10</span>
+  <span class="ey reveal d1">comparison</span>
+  <h2 class="reveal d2">AI vs IoT</h2>
+  <table class="reveal d3">
+    <tr><th>Aspect</th><th>AI</th><th>IoT</th></tr>
+    <tr><td>Core function</td><td>Process, decide, generate</td><td>Sense, connect, communicate</td></tr>
+    <tr><td>Where it lives</td><td>Software / cloud</td><td>Physical devices / sensors</td></tr>
+    <tr><td>Key risk</td><td>Bias, job displacement</td><td>Privacy, security, e-waste</td></tr>
+    <tr><td>PH opportunity</td><td>BPO evolution, health, education</td><td>Agriculture, disaster, smart cities</td></tr>
+    <tr><td>Combined</td><td colspan="2">AIoT: smart systems that sense AND decide</td></tr>
+  </table>
+</section>
+
+<section class="slide bg4" data-script="Group activity. Design an IoT solution for a Filipino problem. In groups, identify a specific local problem (e.g., flooding in your barangay, crop damage, traffic in your city, waste management). Then design a basic IoT solution: what sensors would you use, how would data flow, what action would the system trigger? Sketch it on paper. 10 minutes. Present.">
+  <span class="sn">10</span>
+  <span class="ey reveal d1">activity</span>
+  <h2 class="reveal d2">Design an IoT Solution</h2>
+  <div class="cd reveal d3" style="max-width:1100px">
+    <p style="color:var(--ac);font-size:26px;font-weight:700;margin-bottom:12px">Group Task (10 min):</p>
+    <p style="color:#fff;font-size:30px;line-height:1.5">Identify a LOCAL problem. Design a basic IoT solution:</p>
+    <ul style="color:rgba(255,255,255,.86);font-size:26px;padding-left:24px;line-height:1.8;margin-top:12px">
+      <li>What sensors would you use?</li>
+      <li>How would data flow?</li>
+      <li>What action would the system trigger?</li>
+      <li>Who benefits?</li>
+    </ul>
+    <p style="color:rgba(255,255,255,.6);font-size:22px;margin-top:14px">Sketch on paper. Creative solutions welcome.</p>
+  </div>
+</section>
+
+<section class="slide bg2" data-script="Key terms for Week 5. AI, machine learning, deep learning, generative AI, narrow AI, AGI, IoT, sensor, smart city, AIoT, data privacy, algorithmic bias. Students should be able to define each and give one example.">
+  <span class="sn">10</span>
+  <span class="ey reveal d1">terms</span>
+  <h2 class="reveal d2">Key Terms: Week 5</h2>
+  <table class="reveal d3">
+    <tr><th>Term</th><th>Meaning</th></tr>
+    <tr><td>Machine Learning</td><td>Systems that learn from data without explicit programming</td></tr>
+    <tr><td>Generative AI</td><td>AI that creates new content (text, images, code)</td></tr>
+    <tr><td>Narrow AI</td><td>AI designed for one specific task</td></tr>
+    <tr><td>IoT</td><td>Network of connected physical objects with sensors</td></tr>
+    <tr><td>AIoT</td><td>AI + IoT combined for smart automation</td></tr>
+    <tr><td>Algorithmic Bias</td><td>Systematic unfairness from AI training data</td></tr>
+  </table>
+</section>
+
+<section class="slide bg4" data-script="Assignment. Choose either AI or IoT. Write a 1-2 page analysis of how it is being used (or could be used) in YOUR specific field (BSIS, Social Work, Education, Criminology, or Business). Cover: what the technology does, one real example, one benefit, one risk, and your personal take on whether it should be expanded or regulated. Due next session.">
+  <span class="sn">10</span>
+  <span class="ey reveal d1">assignment</span>
+  <h2 class="reveal d2">Homework</h2>
+  <div class="cd reveal d3" style="max-width:1120px">
+    <p style="color:var(--ac);font-size:26px;font-weight:700;margin-bottom:12px">Analysis Paper (1-2 pages)</p>
+    <p style="color:#fff;font-size:30px;line-height:1.5">Choose AI or IoT. Analyze its use in YOUR field:</p>
+    <ul style="color:rgba(255,255,255,.86);font-size:26px;padding-left:24px;line-height:1.8;margin-top:12px">
+      <li>What does the technology do?</li>
+      <li>One real example in your field</li>
+      <li>One benefit + one risk</li>
+      <li>Your take: expand or regulate?</li>
+    </ul>
+    <p style="color:rgba(255,255,255,.6);font-size:22px;margin-top:14px">Due next session.</p>
+  </div>
+</section>
+
+<section class="slide bg3" data-script="Week 5 summary. Session 9: AI fundamentals, types, how it works, daily applications, generative AI wave, benefits, risks, Philippine context, ethics. Session 10: IoT definition, architecture, examples, AIoT combo, smart cities, Philippine applications, privacy and security risks. Big picture: AI makes systems intelligent, IoT makes the world connected. Together they create smart environments that change how we live. Next week: blockchain and cloud computing.">
+  <span class="sn" style="color:rgba(255,255,255,.06)">10</span>
+  <span class="ey reveal d1">week summary</span>
+  <h2 class="reveal d2" style="color:#fff">Week 5 Summary</h2>
+  <div class="g2 reveal d3">
+    <div class="gl"><h3>Session 9: AI</h3><p>Types, ML, generative AI, benefits, risks, PH context, ethics.</p></div>
+    <div class="gl"><h3>Session 10: IoT</h3><p>Connected devices, architecture, smart cities, AIoT, privacy.</p></div>
+  </div>
+  <p class="reveal d4" style="color:rgba(255,255,255,.76);margin-top:22px">AI = intelligent systems. IoT = connected world. Together = smart environments.</p>
+</section>
+
+<section class="slide bg1 orb" data-script="End of Week 5. Great work today. These are the technologies that will define your careers and your society for the next decade. Understanding them technically AND socially is exactly what STS prepares you for. Next week: blockchain and cloud computing. Two more powerful ICT trends that are changing finance, security, and infrastructure. See you, and don't forget the analysis paper.">
+  <h1 class="reveal-scale d1" style="font-size:76px;color:#fff;text-align:center">End of Week 5 🤖🌐</h1>
+  <p class="reveal d2" style="color:rgba(255,255,255,.8);text-align:center;font-size:30px;margin-top:18px">Next: Blockchain & Cloud Computing</p>
+  <p class="reveal d3 tiny" style="color:rgba(255,255,255,.55);text-align:center;margin-top:28px">STS | Elenito G. David | Cronasia Foundation College, Inc.</p>
+</section>
+
+<script>
+(function(){
+  var slides=document.querySelectorAll('.slide'),sw=null,cur=0;
+  function idx(){var h=location.hash,m=h.match(/slide-(\d+)/);if(m)return Math.max(0,Math.min(slides.length-1,parseInt(m[1],10)-1));var b=0,bt=1e9;slides.forEach(function(s,i){var d=Math.abs(s.getBoundingClientRect().top);if(d<bt){bt=d;b=i}});return b}
+  function html(i){var s=slides[i],sc=s?s.dataset.script:'No script for this slide.',n=i+1,t=slides.length;return'<!DOCTYPE html><html><head><meta charset=UTF-8><title>Teacher Script</title><style>*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#0b1020;color:#eaf2ff}.w{padding:28px 32px;max-width:1000px;margin:0 auto}.nav{position:sticky;top:0;background:rgba(11,16,32,.95);padding:16px 0 20px;border-bottom:1px solid rgba(125,211,252,.12);z-index:10}.badge{display:inline-block;padding:6px 14px;border-radius:999px;background:#16325f;color:#7dd3fc;font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:700}h2{font-size:22px;margin:12px 0 4px;color:#e2e8f0}.meta{color:#94a3b8;font-size:13px}.card{background:#121a30;border:1px solid rgba(125,211,252,.15);border-radius:16px;padding:28px;margin-top:20px}.script{font-size:21px;line-height:1.7;white-space:pre-wrap;color:#e2e8f0}.tip{margin-top:20px;font-size:13px;color:#64748b;border-top:1px solid rgba(125,211,252,.08);padding-top:14px}</style></head><body><div class=w><div class=nav><span class=badge>teacher script</span><h2>Slide '+n+' / '+t+'</h2><p class=meta>Script syncs with main deck automatically.</p></div><div class=card><div class=script>'+sc.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</div></div><div class=tip>Keep on laptop. Press T in main deck to reopen.</div></div></body></html>'}
+  function sync(){if(!sw||sw.closed)return;var i=idx();if(i!==cur){cur=i;sw.document.open();sw.document.write(html(i));sw.document.close()}}
+  function open(){cur=idx();sw=window.open('','_teacherScript','width=900,height=800,resizable=yes,scrollbars=yes');if(!sw)return;sw.document.open();sw.document.write(html(cur));sw.document.close();sw.focus()}
+  document.addEventListener('keydown',function(e){if((e.key==='t'||e.key==='T')&&!e.metaKey&&!e.ctrlKey&&!e.altKey){e.preventDefault();if(!sw||sw.closed)open();else{sw.focus();sync()}}});
+  window.addEventListener('hashchange',function(){setTimeout(sync,80)});setInterval(sync,400);
+})();
+</script>
+</body>
+</html>

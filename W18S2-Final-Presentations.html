@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- skill:chassis -->
+<style>
+/* =====================================================
+   PRESENTATION CHASSIS — style-invariant base styles
+   Fixed 1920×1080 canvas scaled to fit any viewport.
+   Customize colors, fonts, and chrome via :root tokens.
+   ===================================================== */
+
+/* ---------- Universal reset ---------- */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+/* ---------- Theme tokens (override in your deck's CSS) ---------- */
+:root {
+    color-scheme: light;
+
+    --background:      #ffffff;
+    --foreground:      #111111;
+    --card:            #f5f5f5;
+    --card-foreground: var(--foreground);
+    --accent:          #c94a3d;
+    --accent-foreground: #ffffff;
+
+    --muted-foreground: color-mix(in srgb, var(--foreground) 55%, transparent);
+    --border:           color-mix(in srgb, var(--foreground) 12%, transparent);
+
+    --font-display: Georgia, serif;
+    --font-body: -apple-system, system-ui, sans-serif;
+    --font-mono: ui-monospace, monospace;
+
+    /* Reveal animation */
+    --reveal-duration: 0.8s;
+    --reveal-ease:     cubic-bezier(0.16, 1, 0.3, 1);
+    --reveal-distance: 28px;
+
+    /* Chrome (nav dots, keyboard hint) */
+    --nav-dot-size: 9px;
+    --nav-dot-radius: 50%;
+    --nav-dot-color: var(--foreground);
+    --nav-dot-active-color: var(--accent);
+    --nav-dot-opacity: 0.4;
+}
+
+/* ---------- Viewport lock + scroll snap ---------- */
+html, body { height: 100%; overflow-x: hidden; }
+html {
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+}
+
+html, body {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+}
+
+/* ---------- Type scale ----------
+   Fixed px sizes on a 1920×1080 canvas. The canvas is scaled to fit
+   any viewport via transform, so these sizes are absolute within the
+   design surface — no responsive units needed. */
+body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-body);
+    font-size: 36px;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+h1 { font-size: 120px; line-height: 1.05; letter-spacing: -0.02em; }
+h2 { font-size: 64px; line-height: 1.1; letter-spacing: -0.01em; }
+h3 { font-size: 44px; line-height: 1.2; }
+.eyebrow {
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1.3;
+}
+
+ul, ol { padding-left: 48px; display: flex; flex-direction: column; gap: 24px; }
+li::marker { color: var(--accent); }
+
+/* ---------- Slide structure ----------
+   .slide is the authored 1920×1080 artboard.
+   The chassis wraps it in viewport + scale layers at runtime. */
+.slide-viewport {
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: block;
+    position: relative;
+    background: var(--background);
+    isolation: isolate;
+    z-index: 1;
+}
+
+.slide-scale {
+    width: 1920px;
+    height: 1080px;
+    transform: translate(-50%, -50%) scale(var(--slide-scale, 1));
+    transform-origin: center center;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
+}
+
+.slide {
+    width: 1920px;
+    height: 1080px;
+    padding: 80px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 60px;
+    position: relative;
+    background: transparent;
+}
+
+
+/* ---------- Image defaults ---------- */
+img, .image-container {
+    max-width: 100%;
+    max-height: 540px;
+    object-fit: contain;
+}
+
+/* ---------- Reveal primitives ----------
+   Driven by chassis.js via the Web Animations API, not CSS transitions.
+   Put .reveal* or .step on ANY element — author CSS on the same element
+   (opacity, transform, transition, filter) never conflicts, because
+   WAAPI animations live in the animation cascade origin and win over
+   normal author declarations. The .dN stagger classes below still apply
+   to theme-authored CSS animations via animation-delay.
+
+   Variants: .reveal (fade + up), .reveal-left, .reveal-right,
+   .reveal-scale, .reveal-blur. .step stays hidden until the user
+   advances forward. Don't combine .step with .reveal* on the same
+   element. */
+
+/* FOUC guard: hide reveals until chassis.js marks the document ready. */
+:root:not(.reveals-ready) .reveal,
+:root:not(.reveals-ready) .reveal-left,
+:root:not(.reveals-ready) .reveal-right,
+:root:not(.reveals-ready) .reveal-scale,
+:root:not(.reveals-ready) .reveal-blur,
+:root:not(.reveals-ready) .step {
+    opacity: 0;
+}
+:root:not(.reveals-ready) .reveal-blur { filter: blur(10px); }
+
+/* ---------- Stagger delays (.d1 … .d8) ---------- */
+.slide.visible .d1 { transition-delay: 0.10s; animation-delay: 0.10s; }
+.slide.visible .d2 { transition-delay: 0.25s; animation-delay: 0.25s; }
+.slide.visible .d3 { transition-delay: 0.40s; animation-delay: 0.40s; }
+.slide.visible .d4 { transition-delay: 0.55s; animation-delay: 0.55s; }
+.slide.visible .d5 { transition-delay: 0.70s; animation-delay: 0.70s; }
+.slide.visible .d6 { transition-delay: 0.85s; animation-delay: 0.85s; }
+.slide.visible .d7 { transition-delay: 1.00s; animation-delay: 1.00s; }
+.slide.visible .d8 { transition-delay: 1.15s; animation-delay: 1.15s; }
+
+/* ---------- Nav dots ----------
+   Default: right-center (vertical stack on right edge).
+   Override with <body data-nav="bottom | top-right | hidden">. */
+.nav-dots {
+    position: fixed;
+    right: clamp(0.6rem, 1.5vw, 1.4rem);
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.5rem, 1vh, 0.8rem);
+    z-index: 50;
+}
+
+body[data-nav="bottom"] .nav-dots {
+    right: auto;
+    top: auto;
+    bottom: clamp(1rem, 2.5vh, 2rem);
+    left: 50%;
+    transform: translateX(-50%);
+    flex-direction: row;
+}
+
+body[data-nav="top-right"] .nav-dots {
+    right: clamp(1rem, 2.5vw, 2rem);
+    top: clamp(1rem, 2.5vh, 2rem);
+    transform: none;
+    flex-direction: row;
+}
+
+body[data-nav="hidden"] .nav-dots { display: none; }
+
+body[data-nav="bottom"] .keyboard-hint {
+    left: clamp(1rem, 2vw, 1.5rem);
+    transform: none;
+}
+
+.nav-dots button {
+    width: var(--nav-dot-size);
+    height: var(--nav-dot-size);
+    border-radius: var(--nav-dot-radius);
+    border: 1.5px solid var(--nav-dot-color);
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: all 0.3s ease;
+    opacity: var(--nav-dot-opacity);
+}
+.nav-dots button:hover { opacity: 0.85; transform: scale(1.15); }
+.nav-dots button:focus-visible {
+    outline: 2px solid var(--nav-dot-active-color);
+    outline-offset: 3px;
+    opacity: 1;
+}
+.nav-dots button.active {
+    background: var(--nav-dot-active-color);
+    border-color: var(--nav-dot-active-color);
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+/* ---------- Keyboard hint ---------- */
+.keyboard-hint {
+    position: fixed;
+    bottom: clamp(0.6rem, 1.2vh, 1rem);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted-foreground);
+    z-index: 50;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.keyboard-hint kbd {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    font-size: 0.9em;
+    padding: 0.05em 0.4em;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--background);
+    margin: 0 0.15em;
+}
+
+/* ---------- Credit line ---------- */
+.chassis-credit {
+    position: fixed;
+    bottom: clamp(0.6rem, 1.2vh, 1rem);
+    left: clamp(1rem, 2vw, 1.5rem);
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--muted-foreground);
+    letter-spacing: 0.02em;
+    z-index: 50;
+    opacity: 0.7;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+.chassis-credit .chassis-credit-emoji {
+    font-style: normal;
+    margin: 0 0.15em;
+}
+
+body[data-nav="bottom"] .chassis-credit {
+    left: auto;
+    right: clamp(1rem, 2vw, 1.5rem);
+}
+
+/* ---------- Custom cursor ---------- */
+.chassis-cursor {
+    position: fixed;
+    top: 0; left: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: var(--accent);
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    will-change: transform;
+}
+.chassis-cursor.visible { opacity: 1; }
+body.artifact-editor-editing .chassis-cursor { display: none; }
+
+@media (hover: none) {
+    .chassis-cursor { display: none; }
+}
+
+body.chassis-cursor-active:not(.artifact-editor-editing),
+body.chassis-cursor-active:not(.artifact-editor-editing) * { cursor: none; }
+
+/* ---------- Opt-outs ---------- */
+body[data-no-chrome] .nav-dots,
+body[data-no-chrome] .keyboard-hint,
+body[data-no-chrome] .chassis-credit,
+body[data-no-chrome] .chassis-cursor,
+body[data-no-chrome] .artifact-editor-toggle { display: none; }
+
+:fullscreen .keyboard-hint,
+:fullscreen .chassis-credit,
+:fullscreen .artifact-editor-toggle { display: none; }
+
+@media (hover: none) {
+    .keyboard-hint,
+    .chassis-credit { display: none; }
+}
+
+@media (max-width: 900px), (max-height: 560px) {
+    .nav-dots,
+    .keyboard-hint,
+    .chassis-credit,
+    .chassis-cursor { display: none; }
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.2s !important;
+    }
+    html { scroll-behavior: auto; }
+}
+
+/* ---------- Print (PDF export) ---------- */
+@media print {
+    .nav-dots, .keyboard-hint, .chassis-credit, .chassis-cursor { display: none !important; }
+    html, body { height: auto; overflow: visible; }
+    html { scroll-snap-type: none; }
+    .slide-viewport {
+        page-break-after: always;
+        break-after: page;
+        height: 100vh;
+    }
+    .slide-scale {
+        position: static !important;
+        transform: none !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+    .slide {
+        width: 100% !important;
+        height: auto !important;
+    }
+}
+
+</style>
+<script>
+/* =====================================================
+   PRESENTATION CHASSIS — slide controller
+   Auto-initializes on DOMContentLoaded.
+   Exposes window.slides for programmatic control.
+   ===================================================== */
+(function () {
+    'use strict';
+
+    const REVEAL_SELECTOR = '.reveal, .reveal-left, .reveal-right, .reveal-scale, .reveal-blur';
+    const STEP_SELECTOR = '.step';
+    const ALL_REVEAL_SELECTOR = REVEAL_SELECTOR + ', ' + STEP_SELECTOR;
+    const VIEWPORT_CLASS = 'slide-viewport';
+    const SCALE_CLASS = 'slide-scale';
+
+    function _detectLang() {
+        const param = new URLSearchParams(location.search).get('lang');
+        return (param || navigator.language || 'en').slice(0, 2).toLowerCase();
+    }
+
+    class SlidePresentation {
+        constructor() {
+            this.slides = Array.from(document.querySelectorAll('.slide'));
+            if (this.slides.length === 0) return;
+
+            // Ensure every slide has an id so hashes + anchor links work.
+            // Author-defined ids are preserved; the rest get slide-N (1-indexed).
+            this.slides.forEach((slide, idx) => {
+                if (!slide.id) slide.id = `slide-${idx + 1}`;
+            });
+            this.viewports = this._setupViewports();
+            this.scales = this.viewports.map((viewport) => viewport.querySelector(`.${SCALE_CLASS}`));
+
+            // Hide every reveal element BEFORE lifting the CSS FOUC guard.
+            // After this, .reveals-ready is on <html>, so CSS no longer hides
+            // reveals — inline styles keep them hidden until JS animates them.
+            this._setupReveals();
+
+            this.navDotsContainer = this._ensureNavDots();
+            this.keyboardHint = this._ensureKeyboardHint();
+            this.credit = this._ensureCredit();
+
+            this._setupCanvasScale();
+            this._setupIntersectionObserver();
+            this._setupKeyboardNav();
+            this._setupWheelNav();
+            this._setupTouchNav();
+            this._setupViewportSync();
+            this._buildNavDots();
+            this._setupHashNav();
+            this._setupCursor();
+            this._setupPrintSettling();
+
+            // If URL has a matching hash, start there; otherwise start at slide 0.
+            const initial = this._slideIndexFromHash(location.hash);
+            this.currentSlide = initial >= 0 ? initial : 0;
+            if (this.currentSlide !== 0) {
+                this._scrollToSlide(this.currentSlide, 'auto');
+            }
+            // Reveal initial slide immediately (observer may miss it on load).
+            const first = this.slides[this.currentSlide];
+            first.classList.add('visible');
+            this._playSlideReveals(first);
+            this._updateNavDots();
+        }
+
+        /* ---------- Viewport scaffolding ----------
+           Authors write .slide as the 1920×1080 artboard. The chassis wraps
+           that authored section in viewport and scale layers. */
+        _setupViewports() {
+            return this.slides.map((slide) => {
+                const existingScale = slide.parentElement?.classList.contains(SCALE_CLASS)
+                    ? slide.parentElement
+                    : null;
+                const existingViewport = existingScale?.parentElement?.classList.contains(VIEWPORT_CLASS)
+                    ? existingScale.parentElement
+                    : null;
+                if (existingViewport) {
+                    this._syncViewportBackground(slide, existingViewport);
+                    return existingViewport;
+                }
+
+                const viewport = document.createElement('div');
+                viewport.className = VIEWPORT_CLASS;
+                const scale = document.createElement('div');
+                scale.className = SCALE_CLASS;
+
+                slide.parentNode.insertBefore(viewport, slide);
+                viewport.appendChild(scale);
+                scale.appendChild(slide);
+                this._syncViewportBackground(slide, viewport);
+
+                return viewport;
+            });
+        }
+
+        _syncViewportBackground(slide, viewport) {
+            const style = getComputedStyle(slide);
+            const hasBackgroundImage = style.backgroundImage && style.backgroundImage !== 'none';
+            const hasBackgroundColor = !['rgba(0, 0, 0, 0)', 'transparent'].includes(style.backgroundColor);
+            if (hasBackgroundImage || hasBackgroundColor) {
+                viewport.style.background = style.background;
+            } else {
+                viewport.style.background = '';
+            }
+            slide.style.background = 'transparent';
+        }
+
+        /* ---------- DOM scaffolding (auto-inserted if missing) ---------- */
+        _ensureNavDots() {
+            let el = document.getElementById('navDots');
+            if (!el) {
+                el = document.createElement('nav');
+                el.id = 'navDots';
+                el.className = 'nav-dots';
+                el.setAttribute('aria-label', 'Slide navigation');
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        _ensureKeyboardHint() {
+            let el = document.querySelector('.keyboard-hint');
+            if (!el) {
+                const i18n = {
+                    en: { navigate: 'navigate', restart: 'restart', fullscreen: 'fullscreen' },
+                    es: { navigate: 'navegar',   restart: 'inicio',   fullscreen: 'fullscreen' },
+                    fr: { navigate: 'naviguer',  restart: 'début',    fullscreen: 'fullscreen' },
+                    de: { navigate: 'blättern',  restart: 'anfang',   fullscreen: 'vollbild' },
+                    pt: { navigate: 'navegar',   restart: 'início',   fullscreen: 'fullscreen' },
+                    ja: { navigate: '移動',      restart: '先頭',      fullscreen: '全画面' },
+                    ko: { navigate: '이동',      restart: '처음',      fullscreen: '전체화면' },
+                    zh: { navigate: '翻页',      restart: '重置',      fullscreen: '全屏' },
+                    it: { navigate: 'navigare',  restart: 'inizio',   fullscreen: 'fullscreen' },
+                    nl: { navigate: 'bladeren',  restart: 'begin',    fullscreen: 'vollscherm' },
+                };
+                const t = i18n[_detectLang()] || i18n.en;
+                el = document.createElement('div');
+                el.className = 'keyboard-hint';
+                el.innerHTML = `<kbd>←</kbd> <kbd>→</kbd> ${t.navigate} &middot; <kbd>R</kbd> ${t.restart} &middot; <kbd>F</kbd> ${t.fullscreen}`;
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        _ensureCredit() {
+            let el = document.querySelector('.chassis-credit');
+            if (!el) {
+                el = document.createElement('div');
+                el.className = 'chassis-credit';
+                el.setAttribute('aria-hidden', 'true');
+                el.innerHTML = '💜 by ClickUp Brain';
+                document.body.appendChild(el);
+            }
+            return el;
+        }
+
+        /* ---------- Reveal engine ----------
+           Reveals are driven by the Web Animations API instead of CSS
+           transitions. This lets authors put .reveal* / .step on any
+           element: animation values live in the animation cascade origin
+           and win over normal author declarations, so no wrapper element
+           is required to isolate the chassis from author CSS.
+
+           State per slide:
+           - "hidden":  inline opacity/transform/filter from the 'from'
+                        keyframe of the variant. Set on init and on
+                        forward re-entry.
+           - "played":  animation is running or has run; the class
+                        `reveals-played` on the slide makes playback
+                        idempotent so observer re-fires (resize,
+                        fullscreen) don't restart the animation.
+           - "settled": animation canceled, inline styles cleared. Used
+                        for backward entries (we skip the animation and
+                        show the final state instantly) and for print. */
+
+        _setupReveals() {
+            // Lift the CSS FOUC guard first so getComputedStyle reads each
+            // element's natural opacity, not the guard's blanket opacity: 0.
+            // No paint occurs mid-task — inline hidden styles are applied
+            // before the browser yields, so there is no visible flash.
+            document.documentElement.classList.add('reveals-ready');
+            this.slides.forEach((slide) => {
+                slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                    el._targetOpacity = parseFloat(getComputedStyle(el).opacity);
+                    this._applyHiddenStyle(el);
+                });
+            });
+        }
+
+        _setupPrintSettling() {
+            // Browsers snapshot the document for print/PDF export. WAAPI
+            // animations don't necessarily complete in that snapshot, so
+            // settle every slide to its final state first. After printing,
+            // reset — but only for slides that haven't already been viewed,
+            // so the audience experience picks up where it left off.
+            window.addEventListener('beforeprint', () => {
+                this.slides.forEach((slide) => this._settleSlide(slide));
+            });
+        }
+
+        _readTokens() {
+            const cs = getComputedStyle(document.documentElement);
+            const rawDuration = parseFloat(cs.getPropertyValue('--reveal-duration'));
+            const duration = Number.isFinite(rawDuration) ? rawDuration * 1000 : 800;
+            const ease = cs.getPropertyValue('--reveal-ease').trim() || 'cubic-bezier(0.16, 1, 0.3, 1)';
+            const distance = cs.getPropertyValue('--reveal-distance').trim() || '28px';
+            const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            return {
+                duration: reducedMotion ? 1 : duration,
+                ease,
+                distance,
+            };
+        }
+
+        _getRevealDelay(el) {
+            // Use getAttribute('class') rather than el.className: on SVG
+            // elements, `.className` is an SVGAnimatedString (not a string)
+            // and calling .match on it throws. getAttribute is uniform
+            // across HTML and SVG.
+            const classes = el.getAttribute('class') || '';
+            const m = classes.match(/\bd([1-8])\b/);
+            if (!m) return 0;
+            // Matches CSS .dN: d1 = 100ms, d2 = 250ms, +150ms per step.
+            return 100 + (parseInt(m[1], 10) - 1) * 150;
+        }
+
+        _getRevealKeyframes(el, distance) {
+            const to = el._targetOpacity ?? 1;
+            if (el.classList.contains('reveal-left')) {
+                return [
+                    { opacity: 0, transform: `translateX(calc(-1 * ${distance}))` },
+                    { opacity: to, transform: 'translateX(0)' },
+                ];
+            }
+            if (el.classList.contains('reveal-right')) {
+                return [
+                    { opacity: 0, transform: `translateX(${distance})` },
+                    { opacity: to, transform: 'translateX(0)' },
+                ];
+            }
+            if (el.classList.contains('reveal-scale')) {
+                return [
+                    { opacity: 0, transform: 'scale(0.88)' },
+                    { opacity: to, transform: 'scale(1)' },
+                ];
+            }
+            if (el.classList.contains('reveal-blur')) {
+                return [
+                    { opacity: 0, filter: 'blur(10px)' },
+                    { opacity: to, filter: 'blur(0)' },
+                ];
+            }
+            // Default: .reveal or .step (slide up + fade)
+            return [
+                { opacity: 0, transform: `translateY(${distance})` },
+                { opacity: to, transform: 'translateY(0)' },
+            ];
+        }
+
+        _applyHiddenStyle(el) {
+            const { distance } = this._readTokens();
+            const from = this._getRevealKeyframes(el, distance)[0];
+            if ('opacity' in from) el.style.opacity = from.opacity;
+            if ('transform' in from) el.style.transform = from.transform;
+            if ('filter' in from) el.style.filter = from.filter;
+        }
+
+        _clearHiddenStyle(el) {
+            el.style.opacity = '';
+            el.style.transform = '';
+            el.style.filter = '';
+        }
+
+        _cancelReveal(el) {
+            if (el._revealAnim) {
+                el._revealAnim.cancel();
+                el._revealAnim = null;
+            }
+        }
+
+        _playReveal(el, delayOverride) {
+            this._cancelReveal(el);
+            const { duration, ease, distance } = this._readTokens();
+            const delay = typeof delayOverride === 'number' ? delayOverride : this._getRevealDelay(el);
+            const keyframes = this._getRevealKeyframes(el, distance);
+            // fill: 'backwards' applies the 'from' keyframe during the
+            // stagger delay so the element stays hidden until its turn,
+            // without pinning the 'to' keyframe after the animation ends.
+            // This lets co-existing author CSS (e.g. a `.pulse` CSS
+            // animation on the same element) take over naturally once the
+            // entrance completes — otherwise our fill would mask anything
+            // the author wanted to happen post-reveal.
+            const anim = el.animate(keyframes, {
+                duration,
+                delay,
+                easing: ease,
+                fill: 'backwards',
+            });
+            el._revealAnim = anim;
+            // Safe to clear inline 'from' styles now — the animation's
+            // backwards-fill holds the element at the 'from' keyframe for
+            // the duration of any stagger delay.
+            this._clearHiddenStyle(el);
+        }
+
+        _playSlideReveals(slide) {
+            if (slide.classList.contains('reveals-played')) return;
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(REVEAL_SELECTOR).forEach((el) => this._playReveal(el));
+            // .step elements stay hidden until the user advances.
+        }
+
+        _resetSlideReveals(slide) {
+            // Forward re-entry: cancel in-flight animations, re-hide
+            // everything, and reset step state so the slide replays cleanly
+            // when the observer next adds .visible.
+            slide.classList.remove('reveals-played');
+            slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._applyHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step.step-shown').forEach((el) => el.classList.remove('step-shown'));
+        }
+
+        _settleSlide(slide) {
+            // Print / PDF export: jump to the final state with everything
+            // shown, so every step appears in the exported document.
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(ALL_REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._clearHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step').forEach((el) => el.classList.add('step-shown'));
+        }
+
+        _rewindSlide(slide) {
+            // Backward re-entry: show reveals instantly (no replay — the
+            // viewer already saw the intro) but hide every step, so the
+            // slide is positioned at the start of its stepped content and
+            // can be stepped through again.
+            slide.classList.add('reveals-played');
+            slide.querySelectorAll(REVEAL_SELECTOR).forEach((el) => {
+                this._cancelReveal(el);
+                this._clearHiddenStyle(el);
+            });
+            slide.querySelectorAll('.step').forEach((el) => {
+                el.classList.remove('step-shown');
+                this._cancelReveal(el);
+                this._applyHiddenStyle(el);
+            });
+        }
+
+        /* ---------- Navigation ----------
+           goTo scrolls to the target. Both forward-replay and backward-
+           rewind need to mutate the target BEFORE scrolling — while it's
+           still offscreen — so the viewer never sees the old state flash
+           into view. Resetting after the slide is in view causes a visible
+           "show then hide" blink; the IntersectionObserver fires too late
+           (80% threshold) to catch it. */
+        goTo(index) {
+            const clamped = Math.max(0, Math.min(this.slides.length - 1, index));
+            if (clamped === this.currentSlide) return;
+
+            const target = this.slides[clamped];
+            const goingForward = clamped > this.currentSlide;
+
+            if (target.classList.contains('visible')) {
+                if (goingForward) {
+                    // Forward replay: full reset so the observer can play reveals fresh.
+                    target.classList.remove('visible');
+                    this._resetSlideReveals(target);
+                } else {
+                    // Backward rewind: hide any shown steps so the slide
+                    // scrolls back in at the start of its stepped content.
+                    this._rewindSlide(target);
+                }
+            }
+
+            this._scrollToSlide(clamped, 'smooth');
+        }
+
+        _scrollToSlide(index, behavior) {
+            this.viewports[index]?.scrollIntoView({ behavior, block: 'start' });
+        }
+
+        _slideIndexFromHash(hash) {
+            if (!hash) return -1;
+            return this.slides.findIndex((s) => '#' + s.id === hash);
+        }
+
+        _syncHash() {
+            const slide = this.slides[this.currentSlide];
+            if (!slide || !slide.id) return;
+            const newHash = '#' + slide.id;
+            if (location.hash !== newHash) {
+                // replaceState — keeps the URL in sync without polluting history,
+                // so the browser back button exits the deck instead of stepping through slides.
+                try {
+                    history.replaceState(null, '', newHash);
+                } catch {
+                    // Sandboxed iframes (opaque origin, about:srcdoc) reject URL
+                    // mutation with a SecurityError. Hash sync is a nicety — an
+                    // unguarded throw here kills the observer callback before it
+                    // marks the slide visible and plays its reveals.
+                }
+            }
+        }
+
+        _setupHashNav() {
+            // React to external hash changes (anchor link clicks, back/forward if user uses pushState manually)
+            window.addEventListener('hashchange', () => {
+                const idx = this._slideIndexFromHash(location.hash);
+                if (idx >= 0 && idx !== this.currentSlide) this.goTo(idx);
+            });
+        }
+
+        /* ---------- Custom cursor ----------
+           Accent disc that follows the pointer, hidden after idle. */
+        _setupCursor() {
+            if (!matchMedia('(hover: hover)').matches) return;
+
+            const cursor = document.createElement('div');
+            cursor.className = 'chassis-cursor';
+            cursor.setAttribute('aria-hidden', 'true');
+            document.body.appendChild(cursor);
+            document.body.classList.add('chassis-cursor-active');
+
+            const half = 16;  // matches width/height / 2 in CSS
+            const IDLE_MS = 2500;
+            let idleTimer = null;
+
+            const show = () => {
+                cursor.classList.add('visible');
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(() => {
+                    cursor.classList.remove('visible');
+                }, IDLE_MS);
+            };
+            const hide = () => {
+                clearTimeout(idleTimer);
+                cursor.classList.remove('visible');
+            };
+
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.transform = `translate3d(${e.clientX - half}px, ${e.clientY - half}px, 0)`;
+                show();
+            });
+            document.addEventListener('mouseleave', hide);
+            document.addEventListener('mouseenter', show);
+        }
+
+        /* ---------- Fullscreen ---------- */
+        toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen?.().catch(() => {});
+            } else {
+                document.exitFullscreen?.();
+            }
+        }
+
+        next() { this.goTo(this.currentSlide + 1); }
+        prev() { this.goTo(this.currentSlide - 1); }
+        first() { this.goTo(0); }
+        last() { this.goTo(this.slides.length - 1); }
+
+        /* ---------- Step-aware advance / retreat ----------
+           advance() reveals the next .step on the current slide (if any),
+           otherwise advances to the next slide. retreat() hides the last
+           revealed step, otherwise goes back to the previous slide. */
+        advance() {
+            const current = this.slides[this.currentSlide];
+            const nextStep = current?.querySelector('.step:not(.step-shown)');
+            if (nextStep) {
+                nextStep.classList.add('step-shown');
+                // No stagger on click-reveal — the user's gesture is the trigger.
+                this._playReveal(nextStep, 0);
+                return;
+            }
+            this.next();
+        }
+        retreat() {
+            const current = this.slides[this.currentSlide];
+            const shown = current?.querySelectorAll('.step.step-shown');
+            if (shown && shown.length > 0) {
+                const last = shown[shown.length - 1];
+                last.classList.remove('step-shown');
+                this._cancelReveal(last);
+                this._applyHiddenStyle(last);
+                return;
+            }
+            this.prev();
+        }
+
+        /* ---------- Intersection observer ----------
+           Fire late (>= 80% in view) so reveals play on a settled slide.
+           This is the single source of truth for active-slide state.
+
+           Forward:  add .visible, play reveals. (goTo() has already reset
+                     the target to pre-reveal state if this is a re-visit,
+                     so the animation is fresh either way.)
+           Backward: add .visible, rewind to the start of the stepped
+                     content — reveals are shown instantly (no replay) and
+                     every step is hidden again so the viewer can step
+                     through it fresh. */
+        _setupIntersectionObserver() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    const idx = this.viewports.indexOf(entry.target);
+                    if (idx < 0) return;
+                    const slide = this.slides[idx];
+
+                    if (idx === this.currentSlide) {
+                        // Same-slide re-fire (initial load, resize, fullscreen).
+                        if (!slide.classList.contains('visible')) {
+                            slide.classList.add('visible');
+                        }
+                        // Idempotent: only plays if not already marked played.
+                        this._playSlideReveals(slide);
+                        return;
+                    }
+
+                    const goingForward = idx > this.currentSlide;
+                    this.currentSlide = idx;
+                    this._updateNavDots();
+                    this._syncHash();
+
+                    slide.classList.add('visible');
+                    if (goingForward) {
+                        this._playSlideReveals(slide);
+                    } else {
+                        this._rewindSlide(slide);
+                    }
+                });
+            }, { threshold: 0.8 });
+
+            this.viewports.forEach((viewport) => observer.observe(viewport));
+        }
+
+        /* ---------- Keyboard ---------- */
+        _setupKeyboardNav() {
+            document.addEventListener('keydown', (e) => {
+                // Skip when user is editing text
+                if (e.target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+
+                switch (e.key) {
+                    // Step-aware: consume steps first, then advance slides
+                    case 'ArrowDown':
+                    case 'ArrowRight':
+                    case ' ':
+                        e.preventDefault(); this.advance(); break;
+                    case 'ArrowUp':
+                    case 'ArrowLeft':
+                        e.preventDefault(); this.retreat(); break;
+                    // Slide-level: always skip past steps
+                    case 'PageDown':
+                        e.preventDefault(); this.next(); break;
+                    case 'PageUp':
+                        e.preventDefault(); this.prev(); break;
+                    case 'Home':
+                        e.preventDefault(); this.first(); break;
+                    case 'End':
+                        e.preventDefault(); this.last(); break;
+                    case 'f':
+                    case 'F':
+                        e.preventDefault(); this.toggleFullscreen(); break;
+                    case 'r':
+                    case 'R':
+                        e.preventDefault(); this.first(); break;
+                }
+            });
+        }
+
+        /* ---------- Wheel / trackpad ----------
+           ALWAYS preventDefault — letting any native wheel scroll through
+           races against scrollIntoView + mandatory snap, and blocks macOS
+           two-finger horizontal swipes from triggering browser back/forward.
+           Whichever axis has the larger magnitude wins, so vertical scroll
+           and horizontal trackpad swipes both drive advance/retreat. Lock
+           briefly after a gesture so trackpad inertia (continuous small
+           deltas) can't spam next(). */
+        _setupWheelNav() {
+            let locked = false;
+            window.addEventListener('wheel', (e) => {
+                if (e.ctrlKey) return;                // preserve browser pinch-zoom (ctrl+wheel)
+                e.preventDefault();                   // block native scroll + horizontal back-swipe
+                if (locked) return;
+                const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+                if (Math.abs(delta) < 20) return;     // ignore tiny flicks
+                locked = true;
+                if (delta > 0) this.advance(); else this.retreat();
+                setTimeout(() => { locked = false; }, 500);
+            }, { passive: false });
+        }
+
+        /* ---------- Touch / swipe ----------
+           Horizontal swipes advance / retreat slides; left = next, right =
+           prev (matches stories / carousel conventions). Dominantly
+           vertical swipes fall through to native scroll-snap so the
+           existing top/bottom behavior keeps working. A time budget
+           rejects slow pans that were really aborted scrolls. */
+        _setupTouchNav() {
+            const MIN_DISTANCE = 50;     // px — below this is a tap or jitter
+            const MAX_TIME = 600;        // ms — slower than this is a pan, not a swipe
+            const DOMINANCE = 1.2;       // horizontal must beat vertical by this factor
+
+            let startX = 0, startY = 0, startTime = 0;
+            let tracking = false;
+
+            window.addEventListener('touchstart', (e) => {
+                if (document.body.classList.contains('artifact-editor-editing')) { tracking = false; return; }
+                if (e.touches.length !== 1) { tracking = false; return; }
+                const t = e.touches[0];
+                startX = t.clientX;
+                startY = t.clientY;
+                startTime = performance.now();
+                tracking = true;
+            }, { passive: true });
+
+            window.addEventListener('touchend', (e) => {
+                if (!tracking) return;
+                tracking = false;
+                const t = e.changedTouches[0];
+                const dx = t.clientX - startX;
+                const dy = t.clientY - startY;
+                const ax = Math.abs(dx), ay = Math.abs(dy);
+                if (ax < MIN_DISTANCE) return;
+                if (ax < ay * DOMINANCE) return;
+                if (performance.now() - startTime > MAX_TIME) return;
+                if (dx < 0) this.advance(); else this.retreat();
+            }, { passive: true });
+
+            window.addEventListener('touchcancel', () => { tracking = false; }, { passive: true });
+        }
+
+        /* ---------- Canvas scaling ----------
+           Each scaler holds a fixed 1920×1080 slide. Compute the
+           scale factor that fits it inside the viewport and apply via
+           CSS custom property. Runs on init, resize, and fullscreen. */
+        _setupCanvasScale() {
+            const CANVAS_W = 1920;
+            const CANVAS_H = 1080;
+            const scales = this.scales;
+
+            const update = () => {
+                const scale = Math.min(
+                    window.innerWidth / CANVAS_W,
+                    window.innerHeight / CANVAS_H
+                );
+                scales.forEach((el) => {
+                    el?.style.setProperty('--slide-scale', scale);
+                });
+            };
+
+            update();
+            window.addEventListener('resize', update);
+            document.addEventListener('fullscreenchange', () => {
+                requestAnimationFrame(update);
+            });
+        }
+
+        /* ---------- Viewport sync ----------
+           Resize / fullscreenchange → realign current slide. Each slide is
+           100vh, so a viewport height change leaves the existing scroll
+           position out of alignment with the slide top; scroll-snap doesn't
+           re-snap on its own. */
+        _setupViewportSync() {
+            const realign = () => {
+                requestAnimationFrame(() => {
+                    this._scrollToSlide(this.currentSlide, 'auto');
+                });
+            };
+            window.addEventListener('resize', realign);
+            document.addEventListener('fullscreenchange', realign);
+        }
+
+        /* ---------- Nav dots ---------- */
+        _buildNavDots() {
+            // Clear first — prevents duplicates when DOM is re-serialized/re-opened
+            this.navDotsContainer.innerHTML = '';
+            this.slides.forEach((slide, idx) => {
+                const dot = document.createElement('button');
+                dot.setAttribute('aria-label', `Go to slide ${idx + 1}`);
+                if (idx === 0) dot.classList.add('active');
+                dot.addEventListener('click', () => this.goTo(idx));
+                this.navDotsContainer.appendChild(dot);
+            });
+        }
+
+        _updateNavDots() {
+            const dots = this.navDotsContainer.querySelectorAll('button');
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === this.currentSlide);
+            });
+        }
+    }
+
+    /* ---------- Auto-init ---------- */
+    function init() {
+        // Each slide canvas is its own editable host for the inline editor.
+        document.querySelectorAll('.slide').forEach(function (el) {
+            el.classList.add('artifact-editable');
+        });
+        window.slides = new SlidePresentation();
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+
+</script>
+<!-- /skill:chassis -->
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>W18S2 – Final Presentations</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&display=swap"/>
+<style>
+:root{
+--background:#0a1628;
+--foreground:#e8edf5;
+--accent:#1e90ff;
+--accent-foreground:#ffffff;
+--card:#122040;
+--card-foreground:#e8edf5;
+--font-display:'Archivo Black',sans-serif;
+--font-body:'Space Grotesk',sans-serif;
+--grad1:linear-gradient(135deg,#0a1628 0%,#1a2d4f 50%,#0a1628 100%);
+--gold:#ffd700;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--background);font-family:var(--font-body);color:var(--foreground);}
+.slide{position:relative;width:1920px;height:1080px;padding:80px;display:flex;flex-direction:column;justify-content:center;overflow:hidden;background:var(--grad1);}
+h1,h2,h3{font-family:var(--font-display);letter-spacing:-0.02em;line-height:1.1;}
+h1{font-size:120px;}h2{font-size:64px;}h3{font-size:44px;}
+p,li{font-size:36px;line-height:1.5;font-weight:400;max-width:800px;}
+.eyebrow{font-size:24px;color:var(--accent);text-transform:uppercase;letter-spacing:0.1em;font-weight:600;}
+.section-num{font-size:200px;font-family:var(--font-display);color:rgba(30,144,255,0.12);position:absolute;top:40px;right:80px;line-height:1;}
+.card{background:var(--card);border-radius:20px;padding:60px;border:1px solid rgba(30,144,255,0.2);box-shadow:0 20px 60px rgba(0,0,0,0.4);}
+.card-accent{background:linear-gradient(135deg,#1e3a5f,#1e90ff);border:none;}
+.card-gold{background:linear-gradient(135deg,#3d2b00,#b8860b);border:none;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:40px;width:100%;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:30px;width:100%;}
+.stat{font-size:140px;font-family:var(--font-display);color:var(--accent);line-height:1;}
+.stat-label{font-size:28px;color:rgba(232,237,245,0.6);margin-top:10px;}
+.meme-card{background:var(--card);border-radius:20px;padding:40px;text-align:center;border:2px solid rgba(30,144,255,0.3);}
+.meme-emoji{font-size:120px;margin-bottom:20px;}
+.meme-text{font-size:32px;font-style:italic;color:rgba(232,237,245,0.8);}
+.quiz-option{background:rgba(30,144,255,0.08);border:2px solid rgba(30,144,255,0.3);border-radius:16px;padding:24px 36px;margin:16px 0;font-size:32px;cursor:pointer;transition:all 0.3s;}
+.quiz-option:hover{background:rgba(30,144,255,0.2);border-color:var(--accent);}
+.quiz-answer{display:none;background:rgba(30,144,255,0.15);border-radius:16px;padding:24px 36px;margin-top:20px;font-size:30px;border-left:4px solid var(--accent);}
+.tag{display:inline-block;background:rgba(30,144,255,0.15);color:var(--accent);padding:8px 20px;border-radius:100px;font-size:22px;font-weight:600;margin:4px;}
+.tag-gold{background:rgba(255,215,0,0.15);color:#ffd700;}
+.glow-circle{position:absolute;width:600px;height:600px;border-radius:50%;background:radial-gradient(circle,rgba(30,144,255,0.1),transparent 70%);pointer-events:none;}
+.rubric-table{width:100%;border-collapse:separate;border-spacing:0;border-radius:12px;overflow:hidden;}
+.rubric-table th{background:rgba(30,144,255,0.2);padding:16px 20px;font-size:20px;text-align:center;font-weight:700;color:var(--accent);}
+.rubric-table td{background:var(--card);padding:14px 16px;font-size:18px;text-align:center;border-top:1px solid rgba(30,144,255,0.1);}
+.rubric-table td:first-child{text-align:left;font-weight:600;font-size:20px;}
+.timer-display{font-size:200px;font-family:var(--font-display);color:var(--accent);text-align:center;}
+.checklist-item{display:flex;align-items:center;gap:16px;margin-bottom:14px;font-size:26px;}
+.checklist-box{width:30px;height:30px;border:3px solid var(--accent);border-radius:6px;flex-shrink:0;}
+.footer-note{position:absolute;bottom:30px;left:80px;font-size:20px;color:rgba(232,237,245,0.4);}
+.script-viewer{display:none;position:fixed;top:0;right:0;width:480px;height:100vh;background:#0d1117;border-left:2px solid #1e90ff;padding:30px;overflow-y:auto;z-index:9999;font-size:20px;line-height:1.6;color:#c9d1d9;font-family:'Space Grotesk',sans-serif;}
+.script-viewer.active{display:block;}
+.script-viewer h4{color:#1e90ff;margin-bottom:12px;font-size:18px;}
+.script-viewer .script-content{white-space:pre-wrap;}
+.answer-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(10,22,40,0.95);z-index:10000;padding:80px;overflow-y:auto;}
+.answer-overlay.active{display:block;}
+.answer-overlay h2{font-family:var(--font-display);color:#1e90ff;margin-bottom:40px;font-size:48px;}
+.answer-overlay .answer-item{background:#122040;border-radius:12px;padding:24px;margin-bottom:16px;font-size:24px;border-left:4px solid #1e90ff;}
+</style>
+</head>
+<body>
+
+<!-- SLIDE 1: Title -->
+<section class="slide" data-script="Class! This is it. The FINAL session of STS. Today is all about YOU. Your presentations, your ideas, your voice. I'm just here to facilitate. The stage is yours. Let's make this memorable!">
+<div class="glow-circle" style="top:-200px;left:-200px;"></div>
+<span class="eyebrow reveal d1">Week 18 · Session 2 · FINALE</span>
+<h1 class="reveal d2" style="font-size:90px;margin-top:30px;">Final<br><span style="color:var(--accent)">Presentations</span> 🎤</h1>
+<p class="reveal d3" style="margin-top:30px;color:rgba(232,237,245,0.7);">Student Showcase · Guidelines · Rubrics · Celebration</p>
+<div class="reveal d4" style="margin-top:40px;">
+<span class="tag tag-gold">🏆 FINALE</span><span class="tag">Week 18</span><span class="tag">Student Showcase</span>
+</div>
+<span class="section-num reveal d5">🎓</span>
+</section>
+
+<!-- SLIDE 2: Session Overview -->
+<section class="slide" data-script="Here's how today will flow. First, I'll review the guidelines and rubric one more time. Then each group presents. After each presentation, we'll have Q&A. At the end, we celebrate and reflect on the whole course.">
+<span class="section-num">01</span>
+<span class="eyebrow reveal d1">Today's Flow</span>
+<h2 class="reveal d2" style="margin-top:20px;">Session Agenda</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<div style="display:flex;flex-direction:column;gap:20px;">
+<div style="display:flex;align-items:center;gap:20px;">
+<div style="width:50px;height:50px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:20px;flex-shrink:0;">1</div>
+<p style="font-size:28px;max-width:none;">📋 Guidelines & Rubric Review (5 min)</p>
+</div>
+<div style="display:flex;align-items:center;gap:20px;">
+<div style="width:50px;height:50px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:20px;flex-shrink:0;">2</div>
+<p style="font-size:28px;max-width:none;">🎤 Group Presentations (10-12 min each + 3 min Q&A)</p>
+</div>
+<div style="display:flex;align-items:center;gap:20px;">
+<div style="width:50px;height:50px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:20px;flex-shrink:0;">3</div>
+<p style="font-size:28px;max-width:none;">🗳️ Peer Evaluation & Feedback</p>
+</div>
+<div style="display:flex;align-items:center;gap:20px;">
+<div style="width:50px;height:50px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:20px;flex-shrink:0;color:#000;">4</div>
+<p style="font-size:28px;max-width:none;">🎉 Awards, Reflection & Course Wrap-up</p>
+</div>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 3: Presentation Guidelines -->
+<section class="slide" data-script="Let's review the presentation guidelines. Each group has 10-12 minutes. Choose any STS topic from the course. Present it with depth, creativity, and critical thinking. This is your chance to OWN a topic and teach the class.">
+<span class="section-num">02</span>
+<span class="eyebrow reveal d1">Guidelines</span>
+<h2 class="reveal d2" style="margin-top:20px;">Presentation Requirements</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<div class="grid-2">
+<div>
+<h3 style="font-size:28px;color:var(--accent);margin-bottom:16px;">Format:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:24px;margin-bottom:12px;">⏱️ 10-12 minutes per group</li>
+<li style="font-size:24px;margin-bottom:12px;">👥 All members must present</li>
+<li style="font-size:24px;margin-bottom:12px;">📊 Visual aid required (slides, poster, demo)</li>
+<li style="font-size:24px;margin-bottom:12px;">❓ 3-minute Q&A after each</li>
+<li style="font-size:24px;">📝 Submit written report (optional bonus)</li>
+</ul>
+</div>
+<div>
+<h3 style="font-size:28px;color:var(--accent);margin-bottom:16px;">Content Must Include:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:24px;margin-bottom:12px;">📖 Clear STS topic & thesis</li>
+<li style="font-size:24px;margin-bottom:12px;">🔬 Scientific/technical explanation</li>
+<li style="font-size:24px;margin-bottom:12px;">👥 Social/ethical implications</li>
+<li style="font-size:24px;margin-bottom:12px;">🇵🇭 Philippine context/application</li>
+<li style="font-size:24px;">💡 Recommendation or call to action</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 4: Topic Ideas -->
+<section class="slide" data-script="If you haven't finalized your topic, here are some proven winners. Any STS issue from our course is fair game. Choose something you're passionate about. Passion shows in presentations.">
+<span class="section-num">02</span>
+<span class="eyebrow reveal d1">Topic Options</span>
+<h2 class="reveal d2" style="margin-top:20px;">STS Topics That Work Well</h2>
+<div class="grid-3 reveal d3" style="margin-top:40px;">
+<div class="card" style="padding:25px;text-align:center;">
+<div style="font-size:40px;">🤖</div>
+<p style="font-size:20px;">AI Ethics: Bias in Hiring Algorithms</p>
+</div>
+<div class="card" style="padding:25px;text-align:center;">
+<div style="font-size:40px;">📱</div>
+<p style="font-size:20px;">Social Media & Filipino Mental Health</p>
+</div>
+<div class="card" style="padding:25px;text-align:center;">
+<div style="font-size:40px;">🧬</div>
+<p style="font-size:20px;">CRISPR: Should We Edit Human Genes?</p>
+</div>
+<div class="card" style="padding:25px;text-align:center;">
+<div style="font-size:40px;">🌊</div>
+<p style="font-size:20px;">Climate Tech Solutions for PH</p>
+</div>
+<div class="card" style="padding:25px;text-align:center;">
+<div style="font-size:40px;">💼</div>
+<p style="font-size:20px;">AI & the Future of Filipino BPO</p>
+</div>
+<div class="card" style="padding:25px;text-align:center;">
+<div style="font-size:40px;">🔒</div>
+<p style="font-size:20px;">Data Privacy in PH (DPA Act)</p>
+</div>
+<div class="card" style="padding:25px;text-align:center;">
+<div style="font-size:40px;">📡</div>
+<p style="font-size:20px;">Digital Divide in Rural Philippines</p>
+</div>
+<div class="card" style="padding:25px;text-align:center;">
+<div style="font-size:40px;">🎮</div>
+<p style="font-size:20px;">Gaming Addiction Among Filipino Youth</p>
+</div>
+<div class="card" style="padding:25px;text-align:center;">
+<div style="font-size:40px;">🚜</div>
+<p style="font-size:20px;">AgriTech & Filipino Farmers</p>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 5: Rubric Overview -->
+<section class="slide" data-script="Now ang rubric. You'll be graded on 5 criteria, each worth 20 points for a total of 100. Content, presentation skills, visual aids, teamwork, and STS thinking. Let me explain each one.">
+<span class="section-num">03</span>
+<span class="eyebrow reveal d1">Assessment</span>
+<h2 class="reveal d2" style="margin-top:20px;">Grading Rubric (100 points)</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:40px;">
+<div style="display:flex;flex-direction:column;gap:16px;">
+<div style="display:flex;align-items:center;gap:20px;">
+<div style="width:60px;text-align:center;font-family:var(--font-display);font-size:24px;color:var(--accent);">20</div>
+<div style="flex:1;background:rgba(30,144,255,0.15);border-radius:8px;padding:16px 24px;">
+<p style="font-size:24px;font-weight:700;">📖 Content & Research</p>
+<p style="font-size:18px;color:rgba(232,237,245,0.6);">Depth, accuracy, sources, evidence-based arguments</p>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:20px;">
+<div style="width:60px;text-align:center;font-family:var(--font-display);font-size:24px;color:var(--accent);">20</div>
+<div style="flex:1;background:rgba(30,144,255,0.15);border-radius:8px;padding:16px 24px;">
+<p style="font-size:24px;font-weight:700;">🎤 Presentation Skills</p>
+<p style="font-size:18px;color:rgba(232,237,245,0.6);">Clarity, confidence, audience engagement, time management</p>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:20px;">
+<div style="width:60px;text-align:center;font-family:var(--font-display);font-size:24px;color:var(--accent);">20</div>
+<div style="flex:1;background:rgba(30,144,255,0.15);border-radius:8px;padding:16px 24px;">
+<p style="font-size:24px;font-weight:700;">🎨 Visual Aids & Creativity</p>
+<p style="font-size:18px;color:rgba(232,237,245,0.6);">Design quality, visual impact, creative approach, multimedia</p>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:20px;">
+<div style="width:60px;text-align:center;font-family:var(--font-display);font-size:24px;color:var(--accent);">20</div>
+<div style="flex:1;background:rgba(30,144,255,0.15);border-radius:8px;padding:16px 24px;">
+<p style="font-size:24px;font-weight:700;">👥 Teamwork & Participation</p>
+<p style="font-size:18px;color:rgba(232,237,245,0.6);">Equal contribution, smooth transitions, coordination</p>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:20px;">
+<div style="width:60px;text-align:center;font-family:var(--font-display);font-size:24px;color:var(--accent);">20</div>
+<div style="flex:1;background:rgba(30,144,255,0.15);border-radius:8px;padding:16px 24px;">
+<p style="font-size:24px;font-weight:700;">🧠 STS Critical Thinking</p>
+<p style="font-size:18px;color:rgba(232,237,245,0.6);">Multi-perspective analysis, Filipino context, ethical reasoning</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 6: Detailed Rubric -->
+<section class="slide" data-script="Here's the detailed breakdown. Focus especially on STS Critical Thinking because that's what sets apart an A presentation from a B. Don't just describe technology, ANALYZE its social implications. That's the whole point of STS.">
+<span class="section-num">03</span>
+<span class="eyebrow reveal d1">Detailed Rubric</span>
+<h2 class="reveal d2" style="margin-top:20px;">Score Breakdown</h2>
+<div class="reveal d3" style="margin-top:30px;">
+<table class="rubric-table">
+<tr>
+<th style="width:25%;">Criteria</th>
+<th style="width:25%;">Excellent (18-20)</th>
+<th style="width:25%;">Good (14-17)</th>
+<th style="width:25%;">Needs Work (10-13)</th>
+</tr>
+<tr>
+<td>📖 Content</td>
+<td>Deep research, multiple sources, well-argued thesis</td>
+<td>Adequate research, clear argument, some gaps</td>
+<td>Surface-level, few sources, weak argument</td>
+</tr>
+<tr>
+<td>🎤 Delivery</td>
+<td>Confident, engaging, good pacing, under time</td>
+<td>Clear but reads notes, slightly over/under time</td>
+<td>Monotone, reads everything, poor timing</td>
+</tr>
+<tr>
+<td>🎨 Visuals</td>
+<td>Professional, creative, enhances message</td>
+<td>Clean and functional, standard design</td>
+<td>Cluttered, text-heavy, distracting</td>
+</tr>
+<tr>
+<td>👥 Teamwork</td>
+<td>All contribute equally, smooth flow</td>
+<td>Most contribute, some awkward transitions</td>
+<td>Unequal work, disorganized</td>
+</tr>
+<tr>
+<td>🧠 STS Thinking</td>
+<td>Multi-perspective, PH context, ethical depth</td>
+<td>Some analysis, mentions ethics</td>
+<td>Purely descriptive, no critical analysis</td>
+</tr>
+</table>
+</div>
+</section>
+
+<!-- SLIDE 7: What Makes an A Presentation -->
+<section class="slide" data-script="Want an A? Here's exactly what I'm looking for. It's not about fancy slides, it's about THINKING. Show me that you can analyze technology from multiple perspectives. Connect it to Filipino society. Propose solutions. That's A-level work.">
+<span class="section-num">04</span>
+<span class="eyebrow reveal d1">Pro Tips</span>
+<h2 class="reveal d2" style="margin-top:20px;">What Gets You an A 🏆</h2>
+<div class="grid-2 reveal d3" style="margin-top:40px;">
+<div class="card card-accent" style="padding:40px;">
+<h3 style="font-size:28px;color:#fff;margin-bottom:16px;">✅ Do This:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:22px;margin-bottom:12px;color:rgba(255,255,255,0.9);">• Analyze, don't just describe</li>
+<li style="font-size:22px;margin-bottom:12px;color:rgba(255,255,255,0.9);">• Connect to Filipino context specifically</li>
+<li style="font-size:22px;margin-bottom:12px;color:rgba(255,255,255,0.9);">• Show multiple perspectives (who benefits? who's harmed?)</li>
+<li style="font-size:22px;margin-bottom:12px;color:rgba(255,255,255,0.9);">• Propose actionable recommendations</li>
+<li style="font-size:22px;margin-bottom:12px;color:rgba(255,255,255,0.9);">• Engage the audience (questions, polls, demos)</li>
+<li style="font-size:22px;color:rgba(255,255,255,0.9);">• Cite credible sources</li>
+</ul>
+</div>
+<div class="card" style="padding:40px;border-color:rgba(255,68,68,0.3);">
+<h3 style="font-size:28px;color:#ff6666;margin-bottom:16px;">❌ Avoid This:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:22px;margin-bottom:12px;">• Reading everything from slides</li>
+<li style="font-size:22px;margin-bottom:12px;">• Copy-paste from Wikipedia</li>
+<li style="font-size:22px;margin-bottom:12px;">• Only one perspective (tech is great! or tech is bad!)</li>
+<li style="font-size:22px;margin-bottom:12px;">• No Filipino context</li>
+<li style="font-size:22px;margin-bottom:12px;">• Going over time (instant deduction)</li>
+<li style="font-size:22px;">• One person does all the work</li>
+</ul>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 8: Presentation Order -->
+<section class="slide" data-script="Here's the presentation order. I'll call groups in sequence. When you're up, come forward, set up quickly, and begin. When you're watching, be a good audience. Listen, take notes, prepare questions for Q&A.">
+<span class="section-num">05</span>
+<span class="eyebrow reveal d1">Schedule</span>
+<h2 class="reveal d2" style="margin-top:20px;">Presentation Order</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<div style="display:flex;flex-direction:column;gap:16px;">
+<div style="display:flex;align-items:center;gap:20px;">
+<div style="width:50px;height:50px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:22px;flex-shrink:0;">1</div>
+<p style="font-size:28px;max-width:none;">Group 1 — Topic: ____________________</p>
+</div>
+<div style="display:flex;align-items:center;gap:20px;">
+<div style="width:50px;height:50px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:22px;flex-shrink:0;">2</div>
+<p style="font-size:28px;max-width:none;">Group 2 — Topic: ____________________</p>
+</div>
+<div style="display:flex;align-items:center;gap:20px;">
+<div style="width:50px;height:50px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:22px;flex-shrink:0;">3</div>
+<p style="font-size:28px;max-width:none;">Group 3 — Topic: ____________________</p>
+</div>
+<div style="display:flex;align-items:center;gap:20px;">
+<div style="width:50px;height:50px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:22px;flex-shrink:0;">4</div>
+<p style="font-size:28px;max-width:none;">Group 4 — Topic: ____________________</p>
+</div>
+<div style="display:flex;align-items:center;gap:20px;">
+<div style="width:50px;height:50px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:22px;flex-shrink:0;">5</div>
+<p style="font-size:28px;max-width:none;">Group 5 — Topic: ____________________</p>
+</div>
+</div>
+<p style="font-size:22px;color:rgba(232,237,245,0.5);margin-top:20px;">⏱️ Strict timing: 12 min max + 3 min Q&A. Timer will be visible.</p>
+</div>
+</section>
+
+<!-- SLIDE 9: Audience Guidelines -->
+<section class="slide" data-script="For those watching: be a GREAT audience. This is a skill too. Listen actively, write down at least one question or comment per presentation, give respectful feedback. This is peer learning at its best.">
+<span class="section-num">05</span>
+<span class="eyebrow reveal d1">Audience Role</span>
+<h2 class="reveal d2" style="margin-top:20px;">Be a Great Audience</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<div class="grid-2">
+<div>
+<h3 style="font-size:28px;color:var(--accent);margin-bottom:16px;">✅ Do:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:24px;margin-bottom:12px;">👂 Listen actively (no phones!)</li>
+<li style="font-size:24px;margin-bottom:12px;">📝 Write down questions</li>
+<li style="font-size:24px;margin-bottom:12px;">👏 Show appreciation</li>
+<li style="font-size:24px;margin-bottom:12px;">❓ Ask thoughtful questions</li>
+<li style="font-size:24px;">💡 Give constructive feedback</li>
+</ul>
+</div>
+<div>
+<h3 style="font-size:28px;color:#ff6666;margin-bottom:16px;">❌ Don't:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:24px;margin-bottom:12px;">📱 Scroll on your phone</li>
+<li style="font-size:24px;margin-bottom:12px;">💤 Sleep or zone out</li>
+<li style="font-size:24px;margin-bottom:12px;">🗣️ Side conversations</li>
+<li style="font-size:24px;margin-bottom:12px;">😒 Dismissive body language</li>
+<li style="font-size:24px;">🤡 Disruptive behavior</li>
+</ul>
+</div>
+</div>
+<p style="font-size:22px;color:rgba(232,237,245,0.5);margin-top:20px;">📋 Peer evaluation forms will be distributed. Your ratings count!</p>
+</div>
+</section>
+
+<!-- SLIDE 10: Q&A Best Practices -->
+<section class="slide" data-script="For the Q&A portion, here are tips. Panelists should listen carefully to the question, think before answering, and be honest if they don't know something. Audience members should ask genuine questions, not try to trip people up.">
+<span class="section-num">06</span>
+<span class="eyebrow reveal d1">Q&A Tips</span>
+<h2 class="reveal d2" style="margin-top:20px;">How to Handle Q&A</h2>
+<div class="grid-2 reveal d3" style="margin-top:40px;">
+<div class="card" style="padding:40px;">
+<h3 style="font-size:26px;color:var(--accent);margin-bottom:16px;">For Presenters:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:22px;margin-bottom:12px;">👂 Listen to the full question first</li>
+<li style="font-size:22px;margin-bottom:12px;">🤔 Pause and think before answering</li>
+<li style="font-size:22px;margin-bottom:12px;">✅ "Great question!" (buys you time)</li>
+<li style="font-size:22px;margin-bottom:12px;">🤷 It's okay to say "I don't know, but..."</li>
+<li style="font-size:22px;">👥 Redirect to teammates if needed</li>
+</ul>
+</div>
+<div class="card" style="padding:40px;">
+<h3 style="font-size:26px;color:var(--accent);margin-bottom:16px;">For Audience:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:22px;margin-bottom:12px;">❓ Ask genuinely curious questions</li>
+<li style="font-size:22px;margin-bottom:12px;">🔗 Connect to course concepts</li>
+<li style="font-size:22px;margin-bottom:12px;">🤝 Be respectful in challenge</li>
+<li style="font-size:22px;margin-bottom:12px;">💡 "What about..." style questions work</li>
+<li style="font-size:22px;">👍 Compliment something specific</li>
+</ul>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 11: Meme - Presentation Anxiety -->
+<section class="slide" style="justify-content:center;align-items:center;" data-script="I know presentations can be nerve-wracking. But remember: you've been discussing STS for 18 weeks. You KNOW this stuff. Just be yourselves, be prepared, and have fun with it.">
+<div class="meme-card reveal d1" style="max-width:900px;">
+<div class="meme-emoji">😰🎤😎</div>
+<div class="meme-text" style="font-size:36px;">Before presenting: "I'm going to forget everything" 😱<br><br>During: *accidentally talks for 20 minutes*<br>"Sir, my time is up na po?" 😅</div>
+<p style="font-size:22px;color:rgba(232,237,245,0.5);margin-top:20px;">You know more than you think! Trust the 18 weeks. 💪</p>
+</div>
+</section>
+
+<!-- SLIDE 12: Timer Slide -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="This is our timer slide. I'll keep this visible during presentations. When you see 2 minutes remaining, start wrapping up. When time is up, finish your current sentence and stop.">
+<span class="eyebrow reveal d1">Presentation Timer</span>
+<div class="timer-display reveal d2">12:00</div>
+<p class="reveal d3" style="font-size:28px;color:rgba(232,237,245,0.6);">⚠️ 2-min warning · 🛑 Hard stop at 12:00</p>
+<div class="reveal d4" style="margin-top:40px;">
+<span class="tag">🟢 Green = On Track</span>
+<span class="tag" style="background:rgba(255,165,0,0.15);color:#ffa500;">🟡 Yellow = 2 min left</span>
+<span class="tag" style="background:rgba(255,68,68,0.15);color:#ff6666;">🔴 Red = Time's up</span>
+</div>
+</section>
+
+<!-- SLIDE 13: Group 1 Intro Slide -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="Alright! First up, Group 1! Come on up, set up your materials, and whenever you're ready, the floor is yours. Good luck!">
+<div class="glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+<h1 class="reveal-scale d1" style="font-size:100px;">Group <span style="color:var(--accent)">1</span></h1>
+<p class="reveal d2" style="font-size:36px;margin-top:20px;color:rgba(232,237,245,0.7);">You're up! 🎤</p>
+<p class="reveal d3" style="font-size:24px;margin-top:20px;color:rgba(232,237,245,0.4);">⏱️ 12 minutes · Setup quickly · Begin when ready</p>
+</section>
+
+<!-- SLIDE 14: Group 2 Intro Slide -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="Next! Group 2, come forward. Set up and begin whenever you're ready.">
+<div class="glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+<h1 class="reveal-scale d1" style="font-size:100px;">Group <span style="color:var(--accent)">2</span></h1>
+<p class="reveal d2" style="font-size:36px;margin-top:20px;color:rgba(232,237,245,0.7);">You're up! 🎤</p>
+<p class="reveal d3" style="font-size:24px;margin-top:20px;color:rgba(232,237,245,0.4);">⏱️ 12 minutes · Setup quickly · Begin when ready</p>
+</section>
+
+<!-- SLIDE 15: Group 3 Intro Slide -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="Group 3! You're next. Come up and show us what you've got.">
+<div class="glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+<h1 class="reveal-scale d1" style="font-size:100px;">Group <span style="color:var(--accent)">3</span></h1>
+<p class="reveal d2" style="font-size:36px;margin-top:20px;color:rgba(232,237,245,0.7);">You're up! 🎤</p>
+<p class="reveal d3" style="font-size:24px;margin-top:20px;color:rgba(232,237,245,0.4);">⏱️ 12 minutes · Setup quickly · Begin when ready</p>
+</section>
+
+<!-- SLIDE 16: Group 4 Intro Slide -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="Group 4! Almost done. Bring your energy and show the class your best work.">
+<div class="glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+<h1 class="reveal-scale d1" style="font-size:100px;">Group <span style="color:var(--accent)">4</span></h1>
+<p class="reveal d2" style="font-size:36px;margin-top:20px;color:rgba(232,237,245,0.7);">You're up! 🎤</p>
+<p class="reveal d3" style="font-size:24px;margin-top:20px;color:rgba(232,237,245,0.4);">⏱️ 12 minutes · Setup quickly · Begin when ready</p>
+</section>
+
+<!-- SLIDE 17: Group 5 Intro Slide -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="Last but not least, Group 5! Final presentation of the semester. Make it count!">
+<div class="glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+<h1 class="reveal-scale d1" style="font-size:100px;">Group <span style="color:var(--accent)">5</span></h1>
+<p class="reveal d2" style="font-size:36px;margin-top:20px;color:rgba(232,237,245,0.7);">Final group! 🎤🏆</p>
+<p class="reveal d3" style="font-size:24px;margin-top:20px;color:rgba(232,237,245,0.4);">⏱️ 12 minutes · Close out strong!</p>
+</section>
+
+<!-- SLIDE 18: Peer Evaluation -->
+<section class="slide" data-script="Now that all presentations are done, time for peer evaluation. Rate each group honestly on content, delivery, and creativity. Your feedback helps your classmates grow.">
+<span class="section-num">07</span>
+<span class="eyebrow reveal d1">Peer Evaluation</span>
+<h2 class="reveal d2" style="margin-top:20px;">Rate Your Classmates 📋</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<h3 style="font-size:30px;color:var(--accent);margin-bottom:24px;">For each group, rate 1-5:</h3>
+<div class="grid-2">
+<div>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:26px;margin-bottom:16px;">📖 Content quality: 1-5</li>
+<li style="font-size:26px;margin-bottom:16px;">🎤 Presentation skills: 1-5</li>
+<li style="font-size:26px;">🎨 Creativity: 1-5</li>
+</ul>
+</div>
+<div>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:26px;margin-bottom:16px;">💬 One thing they did GREAT:</li>
+<li style="font-size:26px;">💡 One suggestion for improvement:</li>
+</ul>
+</div>
+</div>
+<p style="font-size:22px;color:rgba(232,237,245,0.5);margin-top:24px;">Be honest but kind. Constructive feedback helps everyone grow.</p>
+</div>
+</section>
+
+<!-- SLIDE 19: Awards Transition -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="And now, the fun part! Let's recognize excellence. Based on my assessment and your peer evaluations, I want to highlight some standout moments from today's presentations.">
+<div class="glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,215,0,0.1),transparent 70%);"></div>
+<h1 class="reveal-scale d1" style="font-size:100px;color:var(--gold);">🏆 AWARDS 🏆</h1>
+<p class="reveal d2" style="font-size:32px;margin-top:20px;color:rgba(232,237,245,0.7);">Recognizing Excellence</p>
+</section>
+
+<!-- SLIDE 20: Award Categories -->
+<section class="slide" data-script="Here are our award categories. I'll announce the winners based on what I observed today. These are fun recognition, but every group deserves applause for their hard work.">
+<span class="section-num">08</span>
+<span class="eyebrow reveal d1">Recognition</span>
+<h2 class="reveal d2" style="margin-top:20px;">Award Categories</h2>
+<div class="grid-3 reveal d3" style="margin-top:40px;">
+<div class="card" style="padding:30px;text-align:center;border-color:rgba(255,215,0,0.3);">
+<div style="font-size:60px;">🥇</div>
+<h3 style="font-size:22px;color:var(--gold);margin-top:8px;">Best Overall</h3>
+<p style="font-size:18px;color:rgba(232,237,245,0.6);">Highest combined score</p>
+</div>
+<div class="card" style="padding:30px;text-align:center;border-color:rgba(255,215,0,0.3);">
+<div style="font-size:60px;">🧠</div>
+<h3 style="font-size:22px;color:var(--gold);margin-top:8px;">Best STS Analysis</h3>
+<p style="font-size:18px;color:rgba(232,237,245,0.6);">Deepest critical thinking</p>
+</div>
+<div class="card" style="padding:30px;text-align:center;border-color:rgba(255,215,0,0.3);">
+<div style="font-size:60px;">🎨</div>
+<h3 style="font-size:22px;color:var(--gold);margin-top:8px;">Most Creative</h3>
+<p style="font-size:18px;color:rgba(232,237,245,0.6);">Best visual & creative approach</p>
+</div>
+<div class="card" style="padding:30px;text-align:center;border-color:rgba(255,215,0,0.3);">
+<div style="font-size:60px;">🎤</div>
+<h3 style="font-size:22px;color:var(--gold);margin-top:8px;">Best Speaker</h3>
+<p style="font-size:18px;color:rgba(232,237,245,0.6);">Most engaging delivery</p>
+</div>
+<div class="card" style="padding:30px;text-align:center;border-color:rgba(255,215,0,0.3);">
+<div style="font-size:60px;">🇵🇭</div>
+<h3 style="font-size:22px;color:var(--gold);margin-top:8px;">Best PH Context</h3>
+<p style="font-size:18px;color:rgba(232,237,245,0.6);">Strongest Filipino connection</p>
+</div>
+<div class="card" style="padding:30px;text-align:center;border-color:rgba(255,215,0,0.3);">
+<div style="font-size:60px;">👥</div>
+<h3 style="font-size:22px;color:var(--gold);margin-top:8px;">Audience Choice</h3>
+<p style="font-size:18px;color:rgba(232,237,245,0.6);">Voted by peer evaluation</p>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 21: Meme - End of Semester -->
+<section class="slide" style="justify-content:center;align-items:center;" data-script="Meme to celebrate! You all survived 18 weeks of STS. From confused Week 1 students to confident presenters today. I'm genuinely proud.">
+<div class="meme-card reveal d1" style="max-width:900px;">
+<div class="meme-emoji">🎓🎉🥳</div>
+<div class="meme-text" style="font-size:36px;">Week 1: "Sir, is this subject hard?" 🥺<br><br>Week 18: *presents 12-minute analysis on AI ethics in post-colonial Philippines* 🧐<br><br>Sir: "Look how far you've come" 🥹</div>
+<p style="font-size:22px;color:rgba(232,237,245,0.5);margin-top:20px;">Growth mindset in action! Congrats, everyone! 🎊</p>
+</div>
+</section>
+
+<!-- SLIDE 22: Course Reflection -->
+<section class="slide" data-script="Before we end, one final reflection. I want each of you to write on a piece of paper: your biggest takeaway, one thing that changed in your thinking, and one commitment you're making based on this course.">
+<span class="section-num">09</span>
+<span class="eyebrow reveal d1">Final Reflection</span>
+<h2 class="reveal d2" style="margin-top:20px;">Your STS Legacy 📝</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<h3 style="font-size:30px;color:var(--accent);margin-bottom:24px;">On a piece of paper, write:</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:28px;margin-bottom:20px;">1️⃣ My BIGGEST takeaway from 18 weeks of STS:</li>
+<li style="font-size:28px;margin-bottom:20px;">2️⃣ One thing that CHANGED in how I think about technology:</li>
+<li style="font-size:28px;margin-bottom:20px;">3️⃣ My COMMITMENT: One thing I will do differently from now on:</li>
+<li style="font-size:28px;">4️⃣ A message to future STS students:</li>
+</ul>
+</div>
+</section>
+
+<!-- SLIDE 23: Letter to Future Students -->
+<section class="slide" data-script="That last one is special. I'll compile your messages to future students and share them at the start of next semester's class. Your wisdom will help the next batch of students understand why STS matters.">
+<span class="section-num">09</span>
+<span class="eyebrow reveal d1">Pay It Forward</span>
+<h2 class="reveal d2" style="margin-top:20px;">Message to Future STS Students</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<h3 style="font-size:32px;color:var(--accent);margin-bottom:24px;">Complete this sentence:</h3>
+<p style="font-size:36px;text-align:center;margin-bottom:30px;font-style:italic;">"Dear future STS student, the one thing I wish I knew from the start is..."</p>
+<p style="font-size:24px;color:rgba(232,237,245,0.6);text-align:center;">I'll read these to next semester's class on Day 1. Your insights will inspire them.</p>
+</div>
+</section>
+
+<!-- SLIDE 24: Final Words from Teacher -->
+<section class="slide" data-script="Class, I want to say something personal. Teaching this course to you has been one of the highlights of my semester. Your questions, your debates, your growth, it's been incredible to witness. You've become critical thinkers, not just students. I'm proud.">
+<span class="section-num">10</span>
+<span class="eyebrow reveal d1">From Your Teacher</span>
+<h2 class="reveal d2" style="margin-top:20px;">A Few Words 💙</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<p style="font-size:30px;margin-bottom:20px;">Teaching you this semester has been a privilege. You came in as students learning a GEC subject.</p>
+<p style="font-size:30px;margin-bottom:20px;">You're leaving as <span style="color:var(--accent);font-weight:700;">STS-literate citizens</span> who can critically engage with technology and its impact on society.</p>
+<p style="font-size:30px;margin-bottom:20px;">The world needs people like you: people who ask <em>"should we?"</em> not just <em>"can we?"</em></p>
+<p style="font-size:30px;color:var(--accent);font-weight:700;">Go make technology serve humanity. 🚀</p>
+</div>
+</section>
+
+<!-- SLIDE 25: Remember These -->
+<section class="slide" data-script="Three things I want you to carry with you forever. These three principles will guide you in any career, any challenge, any decision involving technology. Keep them close.">
+<span class="section-num">10</span>
+<span class="eyebrow reveal d1">Remember</span>
+<h2 class="reveal d2" style="margin-top:20px;">Carry These Forever</h2>
+<div class="reveal d3" style="margin-top:50px;display:flex;flex-direction:column;gap:30px;align-items:center;">
+<div class="card card-accent" style="padding:30px 60px;max-width:800px;text-align:center;">
+<p style="font-size:30px;color:#fff;"><strong>1.</strong> Technology is not destiny. We CHOOSE our future.</p>
+</div>
+<div class="card card-accent" style="padding:30px 60px;max-width:800px;text-align:center;">
+<p style="font-size:30px;color:#fff;"><strong>2.</strong> Always ask: Who benefits? Who's harmed? Who decides?</p>
+</div>
+<div class="card card-accent" style="padding:30px 60px;max-width:800px;text-align:center;">
+<p style="font-size:30px;color:#fff;"><strong>3.</strong> The good life is about meaning, relationships, and contribution.</p>
+</div>
+</div>
+</section>
+
+<!-- SLIDE 26: Practical Reminders -->
+<section class="slide" data-script="Practical reminders: final grades will be posted within 2 weeks. If you submitted a written report, that's bonus points. If you have questions about grades, come see me during consultation hours.">
+<span class="section-num">11</span>
+<span class="eyebrow reveal d1">Admin Notes</span>
+<h2 class="reveal d2" style="margin-top:20px;">Practical Reminders</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<ul style="list-style:none;padding:0;">
+<li style="font-size:28px;margin-bottom:20px;">📊 Final grades posted within 2 weeks</li>
+<li style="font-size:28px;margin-bottom:20px;">📝 Written reports (optional bonus) due: end of week</li>
+<li style="font-size:28px;margin-bottom:20px;">🗓️ Grade consultation: [Office hours TBA]</li>
+<li style="font-size:28px;margin-bottom:20px;">📧 Questions? Email me anytime</li>
+<li style="font-size:28px;">⭐ Course evaluation: Please fill out honestly (anonymous!)</li>
+</ul>
+</div>
+</section>
+
+<!-- SLIDE 27: Course Evaluation -->
+<section class="slide" data-script="Please take 3 minutes to fill out the course evaluation. Be HONEST. Your feedback helps me improve for next semester. It's anonymous, so don't hold back. What worked? What didn't? What should I change?">
+<span class="section-num">11</span>
+<span class="eyebrow reveal d1">Your Feedback</span>
+<h2 class="reveal d2" style="margin-top:20px;">Course Evaluation 📋</h2>
+<div class="card reveal d3" style="margin-top:40px;padding:50px;">
+<h3 style="font-size:30px;color:var(--accent);margin-bottom:24px;">Help me improve (3 minutes, anonymous):</h3>
+<ul style="list-style:none;padding:0;">
+<li style="font-size:28px;margin-bottom:16px;">1. What was the BEST part of this course?</li>
+<li style="font-size:28px;margin-bottom:16px;">2. What should be CHANGED or improved?</li>
+<li style="font-size:28px;margin-bottom:16px;">3. Was the pacing (speed) too fast, too slow, or just right?</li>
+<li style="font-size:28px;margin-bottom:16px;">4. Were the slides/presentations effective for learning?</li>
+<li style="font-size:28px;">5. Overall rating: 1-10</li>
+</ul>
+</div>
+</section>
+
+<!-- SLIDE 28: Quiz (Fun Final) -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="One LAST quiz for fun. Not graded. Just to see who's been paying attention to the memes and vibes all semester. Ready?">
+<div class="glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+<h1 class="reveal-scale d1" style="font-size:100px;color:var(--gold);">FUN QUIZ 🎉</h1>
+<p class="reveal d2" style="font-size:36px;margin-top:20px;color:rgba(232,237,245,0.7);">Not graded! Just for fun. Who remembers?</p>
+</section>
+
+<!-- SLIDE 29: Fun Q1 -->
+<section class="slide" data-script="Fun question 1: What did we say is the #1 predictor of a good life according to the Harvard study? Relationships! If you remember nothing else from this course, remember that." data-answer="B) Quality of close relationships">
+<span class="section-num">🎉</span>
+<span class="eyebrow reveal d1">Fun Quiz</span>
+<h2 class="reveal d2" style="margin-top:20px;">If you remember ONE thing from STS, it should be:</h2>
+<div class="reveal d3" style="margin-top:40px;">
+<div class="quiz-option">A) AI will take all our jobs</div>
+<div class="quiz-option">B) Relationships are the #1 predictor of a good life</div>
+<div class="quiz-option">C) Technology is always bad for society</div>
+<div class="quiz-option">D) The Philippines has the worst internet</div>
+</div>
+<div class="quiz-answer">✅ <strong>B)</strong> — 85 years of Harvard data. Invest in your relationships above all else. 💙</div>
+</section>
+
+<!-- SLIDE 30: Fun Q2 -->
+<section class="slide" data-script="Question 2: What does STS stand for? Just kidding, I hope you know this one after 18 weeks. But seriously, it's not just about the acronym, it's about the MINDSET." data-answer="C) Science, Technology and Society — and the relationships between them">
+<span class="section-num">🎉</span>
+<span class="eyebrow reveal d1">Fun Quiz</span>
+<h2 class="reveal d2" style="margin-top:20px;">After 18 weeks, STS really means:</h2>
+<div class="reveal d3" style="margin-top:40px;">
+<div class="quiz-option">A) Some Tough Subject 😤</div>
+<div class="quiz-option">B) Sir's Teaching Style 😂</div>
+<div class="quiz-option">C) Science, Technology & Society (and their interconnection)</div>
+<div class="quiz-option">D) Sleep, TikTok & Snacks (our actual semester) 💀</div>
+</div>
+<div class="quiz-answer">✅ <strong>C)</strong> — But honestly, D is also valid 😂. The point is understanding how these three shape each other.</div>
+</section>
+
+<!-- SLIDE 31: Fun Q3 -->
+<section class="slide" data-script="Question 3: What's the Easterlin Paradox? That money and happiness don't scale proportionally beyond basic needs. Remember the hedonic treadmill!" data-answer="B) Beyond basic needs, more money doesn't proportionally increase happiness">
+<span class="section-num">🎉</span>
+<span class="eyebrow reveal d1">Fun Quiz</span>
+<h2 class="reveal d2" style="margin-top:20px;">The Easterlin Paradox teaches us that:</h2>
+<div class="reveal d3" style="margin-top:40px;">
+<div class="quiz-option">A) Eastern philosophy is better than Western</div>
+<div class="quiz-option">B) Beyond basic needs, more money ≠ more happiness</div>
+<div class="quiz-option">C) Easter Island was destroyed by technology</div>
+<div class="quiz-option">D) Sir should give us all automatic 1.0 grades 🙏</div>
+</div>
+<div class="quiz-answer">✅ <strong>B)</strong> — Though D is a compelling argument 😂. Invest in meaning, not just money.</div>
+</section>
+
+<!-- SLIDE 32: Fun Q4 -->
+<section class="slide" data-script="Question 4: What's the most important question STS teaches you to ask? 'Who benefits and who is harmed?' This is the foundation of critical tech thinking." data-answer="A) Who benefits? Who is harmed? Who decides?">
+<span class="section-num">🎉</span>
+<span class="eyebrow reveal d1">Fun Quiz</span>
+<h2 class="reveal d2" style="margin-top:20px;">The MOST important STS question is:</h2>
+<div class="reveal d3" style="margin-top:40px;">
+<div class="quiz-option">A) "Who benefits? Who is harmed? Who decides?"</div>
+<div class="quiz-option">B) "Is there WiFi here?"</div>
+<div class="quiz-option">C) "When is the deadline po, Sir?"</div>
+<div class="quiz-option">D) "Will this be in the exam?"</div>
+</div>
+<div class="quiz-answer">✅ <strong>A)</strong> — Ask this about EVERY new technology and you'll always see clearly. (Though B, C, and D are valid student concerns 😂)</div>
+</section>
+
+<!-- SLIDE 33: Fun Q5 -->
+<section class="slide" data-script="Last one: What's the one big idea of this course? Technology is not destiny. We choose our future. Don't be passive consumers of tech. Be active shapers of how technology serves humanity." data-answer="C) Technology is not destiny — WE choose what kind of future to build">
+<span class="section-num">🎉</span>
+<span class="eyebrow reveal d1">Fun Quiz</span>
+<h2 class="reveal d2" style="margin-top:20px;">The ONE BIG IDEA of this entire course:</h2>
+<div class="reveal d3" style="margin-top:40px;">
+<div class="quiz-option">A) Technology is always good for society</div>
+<div class="quiz-option">B) We should reject all technology and live in caves</div>
+<div class="quiz-option">C) Technology is not destiny — WE choose our future</div>
+<div class="quiz-option">D) STS is the best GEC subject (no bias) 😎</div>
+</div>
+<div class="quiz-answer">✅ <strong>C)</strong> — And also D 😂. But seriously: YOU have the power to shape how technology serves humanity. Use it wisely.</div>
+</section>
+
+<!-- SLIDE 34: Celebration -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="CONGRATULATIONS! You made it! 18 weeks of STS, officially DONE. Give yourselves a round of applause. You've earned it. I'm proud of every single one of you.">
+<div class="glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%);background:radial-gradient(circle,rgba(255,215,0,0.15),transparent 70%);"></div>
+<h1 class="reveal-scale d1" style="font-size:80px;">🎉 CONGRATULATIONS! 🎉</h1>
+<p class="reveal d2" style="font-size:36px;margin-top:20px;color:var(--gold);">You completed Science, Technology & Society!</p>
+<p class="reveal d3" style="font-size:28px;margin-top:20px;color:rgba(232,237,245,0.7);">18 weeks · 36 sessions · Countless insights</p>
+</section>
+
+<!-- SLIDE 35: Class Photo Moment -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="Before everyone leaves, let's take a class photo! Come together, gather around, and let's capture this moment. This is your STS batch. Remember each other.">
+<div class="glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+<h1 class="reveal-scale d1" style="font-size:100px;">📸</h1>
+<h2 class="reveal d2" style="font-size:56px;margin-top:20px;">Class Photo Time!</h2>
+<p class="reveal d3" style="font-size:32px;margin-top:20px;color:rgba(232,237,245,0.7);">Gather around! Let's capture this moment. 🤳</p>
+</section>
+
+<!-- SLIDE 36: Final Goodbye -->
+<section class="slide" style="justify-content:center;align-items:center;text-align:center;" data-script="And that's a wrap! Go out there and make the world better. Use technology wisely. Question everything. Build meaningful relationships. Find your purpose. And remember: the good life is not something you achieve, it's something you PRACTICE every single day. Goodbye, class. Thank you for an amazing semester!">
+<div class="glow-circle" style="top:50%;left:50%;transform:translate(-50%,-50%);"></div>
+<span class="eyebrow reveal d1">Thank You</span>
+<h1 class="reveal-scale d2" style="font-size:72px;">Go Change<br>the <span style="color:var(--accent)">World</span> 🌍</h1>
+<p class="reveal d3" style="margin-top:30px;font-size:28px;color:rgba(232,237,245,0.7);max-width:700px;margin-left:auto;margin-right:auto;">Make technology serve humanity. Question everything. Build deep relationships. Find YOUR meaning.</p>
+<p class="reveal d4" style="margin-top:30px;font-size:24px;color:rgba(232,237,245,0.4);">Science, Technology & Society · Semester Complete ✅</p>
+</section>
+
+<!-- SCRIPT VIEWER -->
+<div class="script-viewer" id="scriptViewer">
+<h4>🎤 Teacher Script</h4>
+<div class="script-content" id="scriptContent"></div>
+</div>
+
+<!-- ANSWER KEY OVERLAY -->
+<div class="answer-overlay" id="answerOverlay">
+<h2>🔑 Answer Key (Fun Quiz)</h2>
+<div class="answer-item"><strong>Q1:</strong> B) Quality of close relationships (Harvard Study)</div>
+<div class="answer-item"><strong>Q2:</strong> C) Science, Technology & Society (and their interconnection)</div>
+<div class="answer-item"><strong>Q3:</strong> B) Beyond basic needs, more money doesn't proportionally increase happiness</div>
+<div class="answer-item"><strong>Q4:</strong> A) "Who benefits? Who is harmed? Who decides?"</div>
+<div class="answer-item"><strong>Q5:</strong> C) Technology is not destiny — WE choose our future</div>
+</div>
+
+<script>
+let scriptOpen=false;const scriptViewer=document.getElementById('scriptViewer');const scriptContent=document.getElementById('scriptContent');
+function updateScript(){const s=document.querySelector('.slide[aria-current="true"]')||document.querySelector('.slide');if(s){scriptContent.textContent=s.getAttribute('data-script')||'No script for this slide.';}}
+document.addEventListener('keydown',function(e){if((e.key==='t'||e.key==='T')&&!e.ctrlKey&&!e.shiftKey&&!e.altKey){scriptOpen=!scriptOpen;scriptViewer.classList.toggle('active',scriptOpen);if(scriptOpen)updateScript();}if(e.key==='D'&&e.ctrlKey&&e.shiftKey){e.preventDefault();document.getElementById('answerOverlay').classList.toggle('active');}if(e.key==='r'||e.key==='R'){const cs=document.querySelector('.slide[aria-current="true"]');if(cs){const a=cs.querySelector('.quiz-answer');if(a)a.style.display=a.style.display==='block'?'none':'block';}}});
+const observer=new MutationObserver(function(){if(scriptOpen)updateScript();});observer.observe(document.body,{attributes:true,subtree:true,attributeFilter:['aria-current']});
+document.getElementById('answerOverlay').addEventListener('click',function(){this.classList.remove('active');});
+</script>
+</body>
+</html>

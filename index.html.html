@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- skill:chrome -->
+<style>
+/* Credit line — bottom-right */
+.design-ui-credit {
+  position: fixed;
+  bottom: 12px;
+  right: 12px;
+  font: 11px/1 system-ui, sans-serif;
+  color: rgba(128,128,128,0.5);
+  pointer-events: none;
+  z-index: 2147483647;
+  transition: opacity 0.4s ease;
+  user-select: none;
+  letter-spacing: 0.02em;
+}
+
+/* Hide chrome on touch devices */
+@media (hover: none) {
+  .design-ui-credit { display: none; }
+}
+
+/* Print fixes */
+@media print {
+  * {
+    transition: none !important;
+    animation: none !important;
+    box-shadow: none !important;
+  }
+  body {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .design-ui-credit { display: none !important; }
+}
+
+</style>
+<script>
+(function () {
+    // Design-ui pages are single compositions, so the whole body is editable.
+    function markEditable() {
+        document.body.classList.add('artifact-editable');
+    }
+
+    // Credit badge with idle-fade. Hover devices only.
+    function initChromeUI() {
+        if (!matchMedia('(hover: hover)').matches) return;
+
+        var credit = document.createElement('div');
+        credit.className = 'design-ui-credit';
+        credit.setAttribute('aria-hidden', 'true');
+        credit.innerHTML = '\u{1F49C} by ClickUp Brain';
+        document.body.appendChild(credit);
+
+        var timer = null;
+        var fade = function (out) { credit.style.opacity = out ? '0' : ''; };
+        fade(true);
+        var show = function () {
+            fade(false);
+            clearTimeout(timer);
+            timer = setTimeout(function () { fade(true); }, 3000);
+        };
+        document.addEventListener('mousemove', show);
+        show();
+    }
+
+    function init() {
+        markEditable();
+        initChromeUI();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
+
+</script>
+<!-- /skill:chrome -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Science, Technology and Society | Course Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --blue-deep: oklch(18% 0.06 265);
+    --blue-dark: oklch(22% 0.08 265);
+    --blue-card: oklch(25% 0.1 265);
+    --blue-card-hover: oklch(30% 0.12 268);
+    --blue-mid: oklch(50% 0.18 265);
+    --violet: oklch(55% 0.2 290);
+    --violet-light: oklch(70% 0.15 290);
+    --accent-glow: oklch(65% 0.2 275);
+    --text-primary: oklch(95% 0.005 265);
+    --text-secondary: oklch(72% 0.02 265);
+    --text-muted: oklch(55% 0.02 265);
+    --border: oklch(30% 0.06 265);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    background: var(--blue-deep);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ===== PARTICLES ===== */
+  .particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    background: oklch(60% 0.15 275 / 0.2);
+    animation: float linear infinite;
+  }
+
+  @keyframes float {
+    0% { transform: translateY(100vh) scale(0); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+  }
+
+  .particle:nth-child(1) { width: 6px; height: 6px; left: 8%; animation-duration: 18s; animation-delay: 0s; }
+  .particle:nth-child(2) { width: 4px; height: 4px; left: 22%; animation-duration: 22s; animation-delay: 3s; }
+  .particle:nth-child(3) { width: 8px; height: 8px; left: 38%; animation-duration: 25s; animation-delay: 6s; }
+  .particle:nth-child(4) { width: 5px; height: 5px; left: 55%; animation-duration: 20s; animation-delay: 2s; }
+  .particle:nth-child(5) { width: 3px; height: 3px; left: 68%; animation-duration: 28s; animation-delay: 8s; }
+  .particle:nth-child(6) { width: 7px; height: 7px; left: 80%; animation-duration: 24s; animation-delay: 4s; }
+  .particle:nth-child(7) { width: 4px; height: 4px; left: 92%; animation-duration: 19s; animation-delay: 7s; }
+  .particle:nth-child(8) { width: 5px; height: 5px; left: 45%; animation-duration: 26s; animation-delay: 10s; }
+  .particle:nth-child(9) { width: 6px; height: 6px; left: 15%; animation-duration: 21s; animation-delay: 5s; }
+  .particle:nth-child(10) { width: 3px; height: 3px; left: 75%; animation-duration: 23s; animation-delay: 1s; }
+
+  /* ===== HERO ===== */
+  .hero {
+    background: linear-gradient(160deg, oklch(20% 0.08 280), oklch(15% 0.06 260), oklch(18% 0.05 250));
+    padding: clamp(3.5rem, 9vw, 7rem) clamp(1.5rem, 5vw, 4rem);
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    right: -15%;
+    width: 60%;
+    height: 160%;
+    background: radial-gradient(ellipse, oklch(55% 0.2 290 / 0.1), transparent 65%);
+    pointer-events: none;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -40%;
+    left: -10%;
+    width: 50%;
+    height: 120%;
+    background: radial-gradient(ellipse, oklch(50% 0.18 265 / 0.08), transparent 60%);
+    pointer-events: none;
+  }
+
+  .hero-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: oklch(50% 0.18 265 / 0.15);
+    border: 1px solid oklch(55% 0.15 275 / 0.3);
+    border-radius: 100px;
+    padding: 0.4rem 1.1rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: oklch(78% 0.08 275);
+    margin-bottom: 2rem;
+  }
+
+  .hero-badge::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--violet-light);
+    box-shadow: 0 0 8px oklch(65% 0.2 275 / 0.6);
+  }
+
+  .hero h1 {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(2.6rem, 6.5vw, 4.5rem);
+    line-height: 1.05;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    text-wrap: balance;
+  }
+
+  .hero h1 span {
+    display: block;
+    background: linear-gradient(135deg, oklch(70% 0.15 265), oklch(70% 0.18 290));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .hero-subtitle {
+    font-size: clamp(1rem, 1.8vw, 1.2rem);
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-bottom: 2rem;
+    max-width: 50ch;
+  }
+
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid oklch(30% 0.06 265 / 0.6);
+  }
+
+  .hero-meta dt {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+  }
+
+  .hero-meta dd {
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+  }
+
+  .hero-meta dd a {
+    color: var(--violet-light);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .hero-meta dd a:hover {
+    color: var(--text-primary);
+  }
+
+  /* ===== SECTION HEADING ===== */
+  .section-heading {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: clamp(2.5rem, 5vw, 4rem) clamp(1.5rem, 5vw, 4rem) clamp(1rem, 2vw, 1.5rem);
+    position: relative;
+    z-index: 1;
+  }
+
+  .section-heading h2 {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(1.1rem, 2.2vw, 1.4rem);
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    color: var(--text-secondary);
+  }
+
+  .section-heading h2::before {
+    content: '';
+    width: 4px;
+    height: 1.3em;
+    background: linear-gradient(180deg, var(--blue-mid), var(--violet));
+    border-radius: 2px;
+  }
+
+  .section-heading .term-weeks {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .section-heading .term-note {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* ===== TOPICS GRID ===== */
+  .topics {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 clamp(1.5rem, 5vw, 4rem) clamp(1rem, 2vw, 1.5rem);
+    display: grid;
+    gap: clamp(0.6rem, 1.2vw, 0.85rem);
+    position: relative;
+    z-index: 1;
+  }
+
+  .topic-item {
+    background: var(--blue-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: clamp(1.2rem, 2.5vw, 1.8rem);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: clamp(1rem, 2vw, 1.8rem);
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.35s var(--ease-out-expo);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .topic-item::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, oklch(50% 0.18 265 / 0.06), oklch(55% 0.2 290 / 0.04));
+    opacity: 0;
+    transition: opacity 0.35s var(--ease-out-expo);
+    pointer-events: none;
+  }
+
+  .topic-item:hover {
+    background: var(--blue-card-hover);
+    border-color: oklch(40% 0.12 275);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px oklch(18% 0.06 265 / 0.5);
+  }
+
+  .topic-item:hover::before { opacity: 1; }
+
+  .topic-item:hover .topic-num {
+    background: linear-gradient(135deg, var(--blue-mid), var(--violet));
+    color: oklch(98% 0.005 265);
+    box-shadow: 0 4px 20px oklch(55% 0.2 275 / 0.3);
+  }
+
+  .topic-item:hover .topic-arrow {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .topic-num {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(1rem, 1.6vw, 1.25rem);
+    width: clamp(2.8rem, 4vw, 3.4rem);
+    height: clamp(2.8rem, 4vw, 3.4rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: oklch(20% 0.06 265);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: all 0.35s var(--ease-out-expo);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .topic-content { min-width: 0; position: relative; z-index: 1; }
+
+  .topic-week {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.3rem;
+  }
+
+  .topic-title {
+    font-family: 'Archivo Black', sans-serif;
+    font-size: clamp(0.9rem, 1.6vw, 1.1rem);
+    line-height: 1.3;
+    color: var(--text-primary);
+  }
+
+  .topic-sessions {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.35rem;
+    line-height: 1.4;
+  }
+
+  .topic-arrow {
+    font-size: 1.4rem;
+    opacity: 0;
+    transform: translateX(-8px);
+    transition: all 0.35s var(--ease-out-expo);
+    color: var(--violet-light);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ===== FOOTER ===== */
+  footer {
+    margin-top: auto;
+    padding: clamp(2.5rem, 5vw, 3.5rem) clamp(1.5rem, 5vw, 4rem);
+    text-align: center;
+    border-top: 1px solid var(--border);
+    position: relative;
+    z-index: 1;
+  }
+
+  .footer-school {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+  }
+
+  .footer-contact {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .footer-contact a {
+    color: var(--violet-light);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .footer-contact a:hover { color: var(--text-primary); }
+
+  .footer-copy {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 640px) {
+    .topic-item { grid-template-columns: auto 1fr; }
+    .topic-arrow { display: none; }
+    .hero-meta { flex-direction: column; gap: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+  <!-- FLOATING PARTICLES -->
+  <div class="particles" aria-hidden="true">
+    <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+    <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+  </div>
+
+  <!-- HERO -->
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="hero-badge">General Education Course</div>
+      <h1>Science, Technology<span>and Society</span></h1>
+      <p class="hero-subtitle">Exploring the intersections of science, technology, and the human condition in the modern world.</p>
+      <dl class="hero-meta">
+        <div>
+          <dt>Instructor</dt>
+          <dd>Elenito E. David</dd>
+        </div>
+        <div>
+          <dt>Institution</dt>
+          <dd>Cronasia Foundation College, Inc.</dd>
+        </div>
+        <div>
+          <dt>Program</dt>
+          <dd>All College Programs (GEC)</dd>
+        </div>
+        <div>
+          <dt>Duration</dt>
+          <dd>18 Weeks · 2 Sessions/Week</dd>
+        </div>
+        <div>
+          <dt>Email</dt>
+          <dd><a href="mailto:e.david@cfci.ph.education">e.david@cfci.ph.education</a></dd>
+        </div>
+        <div>
+          <dt>Facebook</dt>
+          <dd><a href="https://www.facebook.com/elenitod4/" target="_blank" rel="noopener">fb.com/elenitod4</a></dd>
+        </div>
+      </dl>
+    </div>
+  </header>
+
+  <!-- ========== PRELIM ========== -->
+  <div class="section-heading"><h2>Prelim<span class="term-weeks">Weeks 1–4</span></h2></div>
+  <nav class="topics">
+    <a class="topic-item" href="#week1"><div class="topic-num">01</div><div class="topic-content"><div class="topic-week">Week 1 · Sessions 1 &amp; 2</div><div class="topic-title">Class Orientation &amp; STS Introduction</div><div class="topic-sessions">Course overview, expectations, grading system, and introduction to Science, Technology and Society</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#week2"><div class="topic-num">02</div><div class="topic-content"><div class="topic-week">Week 2 · Sessions 3 &amp; 4</div><div class="topic-title">Intellectual Revolutions &amp; Information/AI Revolutions</div><div class="topic-sessions">Copernican, Darwinian, Freudian revolutions; the digital transformation and artificial intelligence era</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#week3"><div class="topic-num">03</div><div class="topic-content"><div class="topic-week">Week 3 · Sessions 5 &amp; 6</div><div class="topic-title">Paradigm Shifts &amp; Historical Antecedents in the Philippines</div><div class="topic-sessions">Kuhn's structure of scientific revolutions; Filipino contributions to science and technology 🇵🇭</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#week4"><div class="topic-num">04</div><div class="topic-content"><div class="topic-week">Week 4 · Sessions 7 &amp; 8</div><div class="topic-title">S&amp;T in Philippine Society &amp; Filipino Innovations Deep Dive</div><div class="topic-sessions">DOST programs, local innovators, and Filipino-made technological breakthroughs 🇵🇭</div></div><div class="topic-arrow">→</div></a>
+  </nav>
+
+  <!-- ========== MIDTERM ========== -->
+  <div class="section-heading"><h2>Midterm<span class="term-weeks">Weeks 5–8</span></h2></div>
+  <nav class="topics">
+    <a class="topic-item" href="#week5"><div class="topic-num">05</div><div class="topic-content"><div class="topic-week">Week 5 · Sessions 9 &amp; 10</div><div class="topic-title">Artificial Intelligence &amp; Internet of Things (IoT)</div><div class="topic-sessions">Machine learning, generative AI, connected devices, AIoT, and their societal implications</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#week6"><div class="topic-num">06</div><div class="topic-content"><div class="topic-week">Week 6 · Sessions 11 &amp; 12</div><div class="topic-title">Blockchain Technology &amp; Cloud Computing</div><div class="topic-sessions">Distributed ledgers, smart contracts, IaaS/PaaS/SaaS, Philippine digital infrastructure</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#week7"><div class="topic-num">07</div><div class="topic-content"><div class="topic-week">Week 7 · Sessions 13 &amp; 14</div><div class="topic-title">Big Data &amp; Weeks 1–6 Review</div><div class="topic-sessions">Volume, velocity, variety; data ethics, privacy, and comprehensive midterm review</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#week8"><div class="topic-num">08</div><div class="topic-content"><div class="topic-week">Week 8 · Sessions 15 &amp; 16</div><div class="topic-title">Midterm Examination &amp; Post-Midterm Debrief</div><div class="topic-sessions">90-minute exam covering Weeks 1–7; debrief and second-half preview</div></div><div class="topic-arrow">→</div></a>
+  </nav>
+
+  <!-- ========== SEMIFINALS ========== -->
+  <div class="section-heading"><h2>Semifinals<span class="term-weeks">Weeks 9–12</span></h2></div>
+  <nav class="topics">
+    <a class="topic-item" href="#week9"><div class="topic-num">09</div><div class="topic-content"><div class="topic-week">Week 9 · Sessions 17 &amp; 18</div><div class="topic-title">Biotechnology &amp; Biotech Applications &amp; Biosafety</div><div class="topic-sessions">Genetic engineering, CRISPR, GMOs, pharmaceutical biotech, biosafety protocols, and bioethics</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#week10"><div class="topic-num">10</div><div class="topic-content"><div class="topic-week">Week 10 · Sessions 19 &amp; 20</div><div class="topic-title">Nanotechnology &amp; Nanotech Deeper &amp; Convergence</div><div class="topic-sessions">Nanoscale science, applications in medicine and materials, NBIC convergence</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#week11"><div class="topic-num">11</div><div class="topic-content"><div class="topic-week">Week 11 · Sessions 21 &amp; 22</div><div class="topic-title">Robotics &amp; Automation, Future of Work &amp; Emerging Tech Synthesis</div><div class="topic-sessions">Industrial robots, cobots, AI automation, job displacement, reskilling, and technology convergence</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#week12"><div class="topic-num">12</div><div class="topic-content"><div class="topic-week">Week 12 · Sessions 23 &amp; 24</div><div class="topic-title">Ethics in Science &amp; Technology and Environment, Sustainability &amp; Tech</div><div class="topic-sessions">Ethical frameworks, responsible innovation, climate tech, sustainable development, green computing</div></div><div class="topic-arrow">→</div></a>
+  </nav>
+
+  <!-- ========== FINALS ========== -->
+  <div class="section-heading"><h2>Finals<span class="term-weeks">Weeks 13–15</span><span class="term-note">(per session)</span></h2></div>
+  <nav class="topics">
+    <a class="topic-item" href="#w13s1"><div class="topic-num">S25</div><div class="topic-content"><div class="topic-week">Week 13 · Session 1</div><div class="topic-title">Bioethics in STS</div><div class="topic-sessions">GMOs, cloning, genetic engineering, designer babies, CRISPR ethics, and Philippine bioethics laws</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#w13s2"><div class="topic-num">S26</div><div class="topic-content"><div class="topic-week">Week 13 · Session 2</div><div class="topic-title">Research Ethics &amp; Intellectual Property</div><div class="topic-sessions">Plagiarism, informed consent, RA 8293 (IP Code), copyright, patents, trademarks, academic integrity</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#w14s1"><div class="topic-num">S27</div><div class="topic-content"><div class="topic-week">Week 14 · Session 1</div><div class="topic-title">Environmental Issues in STS</div><div class="topic-sessions">Climate change, pollution, e-waste crisis, deforestation, Philippine vulnerability and the Anthropocene</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#w14s2"><div class="topic-num">S28</div><div class="topic-content"><div class="topic-week">Week 14 · Session 2</div><div class="topic-title">Green Technology &amp; Sustainability</div><div class="topic-sessions">Renewable energy, circular economy, PH environmental policies, SDGs, and green architecture</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#w15s1"><div class="topic-num">S29</div><div class="topic-content"><div class="topic-week">Week 15 · Session 1</div><div class="topic-title">The Digital Divide</div><div class="topic-sessions">Access, equity, Filipino digital landscape, urban vs. rural gap, RA 10929, COVID impact on education</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#w15s2"><div class="topic-num">S30</div><div class="topic-content"><div class="topic-week">Week 15 · Session 2</div><div class="topic-title">Cybersecurity &amp; Data Privacy</div><div class="topic-sessions">Cyber threats, RA 10175 (Cybercrime), RA 10173 (Data Privacy), NPC, online safety best practices</div></div><div class="topic-arrow">→</div></a>
+  </nav>
+
+  <!-- ========== ADDITIONAL TOPICS ========== -->
+  <div class="section-heading"><h2>Additional Topics<span class="term-weeks">Weeks 16–18</span><span class="term-note">(if Finals completed early)</span></h2></div>
+  <nav class="topics">
+    <a class="topic-item" href="#w16s1"><div class="topic-num">S31</div><div class="topic-content"><div class="topic-week">Week 16 · Session 1</div><div class="topic-title">Human Flourishing</div><div class="topic-sessions">Eudaimonia, Aristotle, Maslow, PERMA model, Filipino concept of kaginhawaan, dimensions of flourishing</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#w16s2"><div class="topic-num">S32</div><div class="topic-content"><div class="topic-week">Week 16 · Session 2</div><div class="topic-title">Science, Technology &amp; Human Flourishing</div><div class="topic-sessions">Tech as enabler and hindrance, attention economy, digital wellbeing, capability approach, the good life</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#w17s1"><div class="topic-num">S33</div><div class="topic-content"><div class="topic-week">Week 17 · Session 1</div><div class="topic-title">The Good Life</div><div class="topic-sessions">Philosophical perspectives on happiness, virtue ethics, utilitarian vs. Kantian views, Filipino values</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#w17s2"><div class="topic-num">S34</div><div class="topic-content"><div class="topic-week">Week 17 · Session 2</div><div class="topic-title">Technology &amp; the Good Life</div><div class="topic-sessions">How technology shapes human happiness, work-life balance, digital minimalism, purposeful innovation</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#w18s1"><div class="topic-num">S35</div><div class="topic-content"><div class="topic-week">Week 18 · Session 1</div><div class="topic-title">Course Synthesis</div><div class="topic-sessions">Integration of all 18-week themes, connecting STS concepts, key takeaways, and reflections</div></div><div class="topic-arrow">→</div></a>
+    <a class="topic-item" href="#w18s2"><div class="topic-num">S36</div><div class="topic-content"><div class="topic-week">Week 18 · Session 2</div><div class="topic-title">Final Presentations</div><div class="topic-sessions">Student group presentations, peer evaluation, course wrap-up, and closing remarks</div></div><div class="topic-arrow">→</div></a>
+  </nav>
+
+  <!-- FOOTER -->
+  <footer>
+    <p class="footer-school">Cronasia Foundation College, Inc. · General Education Department</p>
+    <p class="footer-contact"><a href="mailto:e.david@cfci.ph.education">e.david@cfci.ph.education</a> · <a href="https://www.facebook.com/elenitod4/" target="_blank" rel="noopener">Facebook</a></p>
+    <p class="footer-copy">&copy; 2026 Elenito E. David. All Rights Reserved.</p>
+  </footer>
+
+</body>
+</html>
